@@ -33,8 +33,10 @@ function App(){
     (window.CRYPTO_AGENTS || []).map((a,i)=>({...a, pos:{...CRYPTO_STARTS[i]}, flip:false, walking:false, bubble:null})));
   const [cryptoBusySet, setCryptoBusySet] = useState({});
   const [cryptoFloor, setCryptoFloor] = useState({working:0, walking:0});
-  const [cryptoBalance, setCryptoBalance] = useState(100000);
+  const [cryptoBalance, setCryptoBalance] = useState(0);
   const [cryptoPnl, setCryptoPnl] = useState(0);
+  const [cryptoAvailable, setCryptoAvailable] = useState(0);
+  const [cryptoPositions, setCryptoPositions] = useState([]);
   const [cryptoNotifs, setCryptoNotifs] = useState([]);
   const [cryptoHistory, setCryptoHistory] = useState([]);
 
@@ -60,7 +62,15 @@ function App(){
   // ---- subscribe to Hyperliquid price updates ----
   useEffect(()=>{
     if (!window.Hyperliquid) return;
-    const off = window.Hyperliquid.onUpdate(snap => setCryptoPrices(snap.prices));
+    const off = window.Hyperliquid.onUpdate(snap => {
+      setCryptoPrices(snap.prices);
+      const p = window.Hyperliquid.getPortfolio();
+      if (p && p.balance > 0) {
+        setCryptoBalance(p.balance);
+        setCryptoAvailable(p.available);
+        setCryptoPositions(p.positions || []);
+      }
+    });
     return () => { if (off) off(); };
   }, []);
 
@@ -349,7 +359,8 @@ function App(){
       <Sidebar view={view} setView={setView} balance={balance} pnlToday={pnlToday}
         tasksDone={tasks} notifs={notifs} equity={equity} running={settings.autopilot}
         agents={agentView}
-        cryptoBalance={cryptoBalance} cryptoPnl={cryptoPnl} cryptoPrices={cryptoPrices} cryptoMode={cryptoMode}
+        cryptoBalance={cryptoBalance} cryptoPnl={cryptoPnl} cryptoPrices={cryptoPrices}
+        cryptoAvailable={cryptoAvailable} cryptoPositions={cryptoPositions}
         cryptoAgents={cryptoAgentView} cryptoNotifs={cryptoNotifs} />
     </div>
   );

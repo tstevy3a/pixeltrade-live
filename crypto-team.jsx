@@ -2,12 +2,12 @@
 
 // Crypto team sprites (reuse existing pixel-sprite maps but different palettes + tints)
 const CRYPTO_AGENTS = [
-  {id:'c1', name:'Nova',   role:'Momentum',       tint:'#4f8a4e',  map:TRADER_MAP,      palette:mkPalette({K:'#0e1a12', S:'#4f8a4e', s:'#2c5a32', T:'#f0d24a'})},
-  {id:'c2', name:'Cipher', role:'Mean-Reversion', tint:'#9b6bff',  map:TRADER_MAP_LONG, palette:mkPalette({K:'#1a0e2a', S:'#9b6bff', s:'#6a3fa0', T:'#6fe08c'})},
-  {id:'c3', name:'Volt',   role:'Scalper',        tint:'#e7b53c',  map:TRADER_MAP,      palette:mkPalette({K:'#1a1410', S:'#e7b53c', s:'#a37e22', T:'#3fa89a'})},
-  {id:'c4', name:'Quasar', role:'Swing',          tint:'#3fa89a',  map:TRADER_MAP_LONG, palette:mkPalette({K:'#0e1a18', S:'#3fa89a', s:'#2c7d72', T:'#e7b53c'})},
-  {id:'c5', name:'Atlas',  role:'Hedge',          tint:'#6e7b8b',  map:TRADER_MAP,      palette:mkPalette({K:'#1a1a1a', S:'#6e7b8b', s:'#4f5864', T:'#6fe08c'})},
-  {id:'c6', name:'Onyx',   role:'Spot Bull',      tint:'#d98b3c',  map:TRADER_MAP_LONG, palette:mkPalette({K:'#0e0e0e', S:'#d98b3c', s:'#a06622', T:'#6fe08c'})},
+  {id:'c1', name:'Nova',   role:'News Analyst',      desc:'Scans news & catalysts for market-moving events',       tint:'#4f8a4e',  map:TRADER_MAP,      palette:mkPalette({K:'#0e1a12', S:'#4f8a4e', s:'#2c5a32', T:'#f0d24a'})},
+  {id:'c2', name:'Cipher', role:'Market Analyst',    desc:'Technical analysis: RSI, MACD, BB, EMA cross signals',  tint:'#9b6bff',  map:TRADER_MAP_LONG, palette:mkPalette({K:'#1a0e2a', S:'#9b6bff', s:'#6a3fa0', T:'#6fe08c'})},
+  {id:'c3', name:'Volt',   role:'Bull Researcher',   desc:'Builds bull case — finds long setups & entry signals',   tint:'#e7b53c',  map:TRADER_MAP,      palette:mkPalette({K:'#1a1410', S:'#e7b53c', s:'#a37e22', T:'#3fa89a'})},
+  {id:'c4', name:'Quasar', role:'Bear Researcher',   desc:'Builds bear case — spots shorts, resistance, risk',      tint:'#3fa89a',  map:TRADER_MAP_LONG, palette:mkPalette({K:'#0e1a18', S:'#3fa89a', s:'#2c7d72', T:'#e7b53c'})},
+  {id:'c5', name:'Atlas',  role:'Risk Manager',      desc:'Aggressive/Conservative/Neutral debate — sets stops',    tint:'#6e7b8b',  map:TRADER_MAP,      palette:mkPalette({K:'#1a1a1a', S:'#6e7b8b', s:'#4f5864', T:'#6fe08c'})},
+  {id:'c6', name:'Onyx',   role:'Portfolio Manager', desc:'Final decision — approves trades, manages live $55 book',tint:'#d98b3c',  map:TRADER_MAP_LONG, palette:mkPalette({K:'#0e0e0e', S:'#d98b3c', s:'#a06622', T:'#6fe08c'})},
 ];
 
 // Crypto-themed work zones (positions in % of room — adjust layout)

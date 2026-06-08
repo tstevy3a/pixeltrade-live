@@ -66,7 +66,7 @@ function NavBtn({icon,label,id,view,setView,badge}){
   );
 }
 
-function Sidebar({view,setView,balance,pnlToday,tasksDone,notifs,equity,statusLabel,running,agents,cryptoBalance,cryptoPnl,cryptoPrices,cryptoMode,cryptoAgents,cryptoNotifs}){
+function Sidebar({view,setView,balance,pnlToday,tasksDone,notifs,equity,statusLabel,running,agents,cryptoBalance,cryptoPnl,cryptoPrices,cryptoAvailable,cryptoPositions,cryptoAgents,cryptoNotifs}){
   const listRef = React.useRef(null);
   const currentAgents = view === 'crypto' ? cryptoAgents : agents;
   const currentNotifs = view === 'crypto' ? cryptoNotifs : notifs;
@@ -112,18 +112,32 @@ function Sidebar({view,setView,balance,pnlToday,tasksDone,notifs,equity,statusLa
 
       {(view === 'crypto' || view === 'analysis') && (
       <div className="side-card frame">
-        <div className="label">🪙 Crypto Stats <span className="mode-tag">{cryptoMode}</span></div>
+        <div className="label">🪙 Crypto <span className="mode-tag">LIVE</span></div>
         <div className="stats">
-          <div className="stat"><span className="k">Balance</span><span className="v">{fmtMoney(cryptoBalance)}</span></div>
+          <div className="stat"><span className="k">Balance</span>
+            <span className="v">{fmtMoney(cryptoBalance)}</span></div>
+          <div className="stat"><span className="k">Available</span>
+            <span className="v">{fmtMoney(cryptoAvailable)}</span></div>
           <div className="stat"><span className="k">P&amp;L Today</span>
             <span className={'v '+(cryptoPnl>=0?'up':'down')}>{fmtSigned(cryptoPnl)}</span></div>
           <div className="stat"><span className="k">BTC</span>
-            <span className="v mono">{cryptoPrices.BTC ? '$' + cryptoPrices.BTC.price.toLocaleString('en-US',{maximumFractionDigits:0}) : '—'}</span></div>
+            <span className="v mono">{cryptoPrices.BTC ? '$'+cryptoPrices.BTC.price.toLocaleString('en-US',{maximumFractionDigits:0}) : '—'}</span></div>
           <div className="stat"><span className="k">ETH</span>
-            <span className="v mono">{cryptoPrices.ETH ? '$' + cryptoPrices.ETH.price.toLocaleString('en-US',{maximumFractionDigits:0}) : '—'}</span></div>
+            <span className="v mono">{cryptoPrices.ETH ? '$'+cryptoPrices.ETH.price.toLocaleString('en-US',{maximumFractionDigits:0}) : '—'}</span></div>
           <div className="stat"><span className="k">SOL</span>
-            <span className="v mono">{cryptoPrices.SOL ? '$' + cryptoPrices.SOL.price.toFixed(2) : '—'}</span></div>
+            <span className="v mono">{cryptoPrices.SOL ? '$'+cryptoPrices.SOL.price.toFixed(2) : '—'}</span></div>
         </div>
+        {(cryptoPositions||[]).length > 0 && (
+          <div className="positions">
+            <div className="label" style={{fontSize:'9px',marginTop:'6px'}}>OPEN POSITIONS</div>
+            {cryptoPositions.map(p => (
+              <div key={p.coin} className="stat" style={{fontSize:'10px'}}>
+                <span className="k">{p.coin} {p.size > 0 ? '▲' : '▼'}</span>
+                <span className={'v '+(p.uPnl>=0?'up':'down')}>{p.uPnl>=0?'+':''}{p.uPnl.toFixed(2)}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
       )}
 

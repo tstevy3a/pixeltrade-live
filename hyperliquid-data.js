@@ -1,16 +1,19 @@
 /* ===== Hyperliquid browser-side fetcher =====
-   Browser polls Hyperliquid testnet REST API directly (public, no auth).
-   For trade execution, uses MCP server via Hermes (paper mode only).
-   Caches prices in window.Hyperliquid; UI subscribes via onUpdate(). */
+   Mainnet: https://api.hyperliquid.xyz (public read-only, no auth needed)
+   Portfolio: polls real wallet balance + positions every 10s
+   Write ops (orders) go through MCP server on localhost — never from browser. */
 (function(){
-  const API_URL = 'https://api.hyperliquid-testnet.xyz';
-  const POLL_MS = 5000;   // 5s for prices
-  const POLL_CANDLE_MS = 30000;  // 30s for candles
+  const API_URL = 'https://api.hyperliquid.xyz';
+  const WALLET  = '0xF7e687e0e4A250e4CDa493fD2C0606610eFe4073';
+  const POLL_MS         = 5000;
+  const POLL_CANDLE_MS  = 30000;
+  const POLL_PORTFOLIO_MS = 10000;
   const DEFAULT_SYMBOLS = ['BTC', 'ETH', 'SOL'];
 
-  let priceCache = {};   // {symbol: {price, ts}}
-  let candleCache = {};  // {symbol_interval: {candles, ts}}
-  let indicatorCache = {}; // {symbol: indicators}
+  let priceCache = {};
+  let candleCache = {};
+  let indicatorCache = {};
+  let portfolioCache = {balance: 0, available: 0, positions: [], ts: 0};
   const subscribers = new Set();
 
   async function postJson(body) {
@@ -185,8 +188,10 @@
     if (window.__hlTimer) return;
     pollMids();
     pollAllIndicators();
-    window.__hlTimer = setInterval(pollMids, POLL_MS);
-    window.__hlIndTimer = setInterval(pollAllIndicators, POLL_CANDLE_MS);
+    pollPortfolio();
+    window.__hlTimer       = setInterval(pollMids, POLL_MS);
+    window.__hlIndTimer    = setInterval(pollAllIndicators, POLL_CANDLE_MS);
+    window.__hlPortTimer   = setInterval(pollPortfolio, POLL_PORTFOLIO_MS);
   }
 
   function getPrices() {
@@ -307,12 +312,37 @@
     };
   }
 
+  async function pollPortfolio() {
+    const d = await postJson({type: 'clearinghouseState', user: WALLET});
+    if (!d) return;
+    const ms = d.marginSummary || {};
+    portfolioCache = {
+      balance:   parseFloat(ms.accountValue  || 0),
+      available: parseFloat(ms.totalRawUsd   || 0),
+      positions: (d.assetPositions || []).map(p => {
+        const pos = p.position || {};
+        return {
+          coin:   pos.coin,
+          size:   parseFloat(pos.szi || 0),
+          entry:  parseFloat(pos.entryPx || 0),
+          uPnl:   parseFloat(pos.unrealizedPnl || 0),
+          liq:    parseFloat(pos.liquidationPx || 0),
+        };
+      }),
+      ts: Date.now(),
+    };
+    emitUpdate();
+  }
+
+  function getPortfolio() { return portfolioCache; }
+
   window.Hyperliquid = {
-    start, getPrices, getPrice, getIndicators, getIndicatorsSync, getIndicatorsAll, onUpdate, decideAction,
-    mode: 'testnet',
+    start, getPrices, getPrice, getIndicators, getIndicatorsSync, getIndicatorsAll,
+    onUpdate, decideAction, getPortfolio,
+    mode: 'mainnet',
+    wallet: WALLET,
   };
 
-  // Auto-start when DOM ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', start);
   } else {
