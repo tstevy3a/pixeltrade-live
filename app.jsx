@@ -261,7 +261,8 @@ function App(){
               symbol: p.oc.crypto_trade && p.oc.crypto_trade.symbol,
               qty: p.oc.crypto_trade && p.oc.crypto_trade.qty,
               price: p.oc.crypto_trade && p.oc.crypto_trade.price,
-              pnl: p.oc.pnlDelta || 0
+              pnl: p.oc.pnlDelta || 0,
+              crypto: true
             }, ...l].slice(0, 200));
           }
           self.phase='idle'; self.idleT=rnd(0.5,2.0); self.bubble=null; self.target=null;

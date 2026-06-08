@@ -1,25 +1,34 @@
 /* ===== Secondary views: History & Settings ===== */
 
 function History({history}){
+  const [tab, setTab] = React.useState('all');
+  const filtered = tab==='all' ? history
+    : tab==='crypto' ? history.filter(h=>h.crypto)
+    : history.filter(h=>!h.crypto);
   return (
     <div className="view-pane frame">
       <h2>📜 Trade & Activity History</h2>
-      <div className="desc">Every action the agent has taken this session — newest first.</div>
+      <div className="seg" style={{marginBottom:12}}>
+        {['all','stocks','crypto'].map(t=>(
+          <button key={t} className={tab===t?'on':''} onClick={()=>setTab(t)}
+            style={{textTransform:'capitalize'}}>{t==='all'?'All':t==='crypto'?'🪙 Crypto':'📈 Stocks'}</button>
+        ))}
+      </div>
       <div className="table">
         <table>
           <thead><tr>
             <th>Time</th><th>Agent</th><th>Station</th><th>Action</th><th>Detail</th><th style={{textAlign:'right'}}>P&amp;L</th>
           </tr></thead>
           <tbody>
-            {history.length===0 && <tr><td colSpan="6" className="muted">No activity yet — head to the Dashboard.</td></tr>}
-            {history.map(h=>(
+            {filtered.length===0 && <tr><td colSpan="6" className="muted">No activity yet.</td></tr>}
+            {filtered.map(h=>(
               <tr key={h.id}>
                 <td className="muted">D{h.day} · {h.time}</td>
                 <td><span className="who" style={{color:h.tint}}>{h.who||'—'}</span></td>
                 <td>{h.icon} {h.station}</td>
                 <td>{h.action}</td>
                 <td>{h.side
-                    ? <span className={'pill '+(h.side==='BUY'?'buy':'sell')}>{h.side} {h.ticker || h.symbol} ×{h.qty} @ ${h.price}</span>
+                    ? <span className={'pill '+(h.side==='BUY'?'buy':'sell')}>{h.side} {h.ticker||h.symbol} ×{h.qty} @ ${h.price}</span>
                     : <span className="muted">{h.detail||'—'}</span>}</td>
                 <td style={{textAlign:'right'}} className={h.pnl>0?'up':h.pnl<0?'down':''}>
                   {h.pnl? fmtSigned(h.pnl) : '—'}</td>
