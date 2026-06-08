@@ -36,6 +36,7 @@ function App(){
   const [cryptoBalance, setCryptoBalance] = useState(100000);
   const [cryptoPnl, setCryptoPnl] = useState(0);
   const [cryptoNotifs, setCryptoNotifs] = useState([]);
+  const [cryptoHistory, setCryptoHistory] = useState([]);
 
   // ---- mutable sim refs ----
   const agentsRef = useRef(AGENTS.map((a,i)=>({
@@ -200,7 +201,7 @@ function App(){
         const dx=t.ax-self.pos.x, dy=t.ay-self.pos.y, dist=Math.hypot(dx,dy);
         if(dist<0.9){
           self.pos={x:t.ax,y:t.ay};
-          const oc=window.generateCryptoOutcome(t); self.pending={st:t,oc};
+          const oc=window.generateCryptoOutcome(t, self); self.pending={st:t,oc};
           self.workT=rnd(t.dur[0],t.dur[1]); self.phase='working'; self.bubble=oc.bubble;
         } else {
           const stp=Math.min(dist, 22*dts);
@@ -218,6 +219,22 @@ function App(){
             }
             if(p.oc.taskInc) {/* tasks only on stocks side */}
             setCryptoNotifs(l=>[{id:++idc.current, ...p.oc.notif, time:fmtClock(clkRef.current), who:self.name, tint:self.tint},...l].slice(0,40));
+            setCryptoHistory(l=>[{
+              id: ++idc.current,
+              day: dayRef.current,
+              time: fmtClock(clkRef.current),
+              who: self.name,
+              tint: self.tint,
+              station: p.st.name,
+              icon: p.st.icon,
+              action: (p.oc.bubble||'').replace('…',''),
+              detail: p.oc.notif.text,
+              side: p.oc.crypto_trade && p.oc.crypto_trade.side,
+              symbol: p.oc.crypto_trade && p.oc.crypto_trade.symbol,
+              qty: p.oc.crypto_trade && p.oc.crypto_trade.qty,
+              price: p.oc.crypto_trade && p.oc.crypto_trade.price,
+              pnl: p.oc.pnlDelta || 0
+            }, ...l].slice(0, 200));
           }
           self.phase='idle'; self.idleT=rnd(0.5,2.0); self.bubble=null; self.target=null;
         }
@@ -280,9 +297,15 @@ function App(){
     balRef.current=START_BAL; pnlRef.current=0; clkRef.current=540; dayRef.current=1;
     agentsRef.current.forEach((a,i)=>{ a.pos={...STARTS[i]}; a.target=null; a.phase='idle';
       a.workT=0; a.idleT=rnd(0.4,2.6+i*0.4); a.pending=null; a.lastSt=null; a.flip=false; a.bubble=null; });
+    cryptoBalRef.current=100000; cryptoPnlRef.current=0;
+    cryptoAgentsRef.current.forEach((a,i)=>{ a.pos={...CRYPTO_STARTS[i]}; a.target=null; a.phase='idle';
+      a.workT=0; a.idleT=rnd(0.4,2.6+i*0.4); a.pending=null; a.lastSt=null; a.flip=false; a.bubble=null; });
     setBalance(START_BAL); setPnl(0); setTasks(0); setNotifs([]); setHistory([]);
+    setCryptoBalance(100000); setCryptoPnl(0); setCryptoNotifs([]); setCryptoHistory([]);
     setEquity([START_BAL]); setBusySet({}); setClock(540); setDay(1);
     setAgentView(AGENTS.map((a,i)=>({...a, pos:{...STARTS[i]}, flip:false, walking:false, bubble:null})));
+    setCryptoAgentView((window.CRYPTO_AGENTS || []).map((a,i)=>({...a, pos:{...CRYPTO_STARTS[i]}, flip:false, walking:false, bubble:null})));
+    setCryptoBusySet({});
   };
 
   const statusLine = settings.autopilot
@@ -318,7 +341,7 @@ function App(){
         {view==='analysis'  && <Analysis analyses={analyses} activeAnalysisId={activeAnalysisId}
             setActiveAnalysisId={setActiveAnalysisId} onCreateAnalysis={onCreateAnalysis}
             agents={agentView} />}
-        {view==='history'   && <History history={history} />}
+        {view==='history'   && <History history={[...history, ...cryptoHistory].sort((a,b)=>b.id-a.id)} />}
         {view==='settings'  && <Settings settings={settings} setSettings={setSettings}
             onReset={onReset} speed={speed} setSpeed={setSpeed} />}
       </div>
@@ -326,7 +349,8 @@ function App(){
       <Sidebar view={view} setView={setView} balance={balance} pnlToday={pnlToday}
         tasksDone={tasks} notifs={notifs} equity={equity} running={settings.autopilot}
         agents={agentView}
-        cryptoBalance={cryptoBalance} cryptoPnl={cryptoPnl} cryptoPrices={cryptoPrices} cryptoMode={cryptoMode} />
+        cryptoBalance={cryptoBalance} cryptoPnl={cryptoPnl} cryptoPrices={cryptoPrices} cryptoMode={cryptoMode}
+        cryptoAgents={cryptoAgentView} cryptoNotifs={cryptoNotifs} />
     </div>
   );
 }

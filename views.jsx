@@ -19,7 +19,7 @@ function History({history}){
                 <td>{h.icon} {h.station}</td>
                 <td>{h.action}</td>
                 <td>{h.side
-                    ? <span className={'pill '+(h.side==='BUY'?'buy':'sell')}>{h.side} {h.ticker} ×{h.qty} @ ${h.price}</span>
+                    ? <span className={'pill '+(h.side==='BUY'?'buy':'sell')}>{h.side} {h.ticker || h.symbol} ×{h.qty} @ ${h.price}</span>
                     : <span className="muted">{h.detail||'—'}</span>}</td>
                 <td style={{textAlign:'right'}} className={h.pnl>0?'up':h.pnl<0?'down':''}>
                   {h.pnl? fmtSigned(h.pnl) : '—'}</td>

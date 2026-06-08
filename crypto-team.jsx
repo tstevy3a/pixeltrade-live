@@ -34,45 +34,69 @@ const CRYPTO_STARTS = [
 ];
 
 // === Crypto outcome generator ===
-function generateCryptoOutcome(st) {
+function generateCryptoOutcome(st, agent) {
   // Pick the symbol this station is tracking
   const sym = st.sym || pick(['BTC','ETH','SOL']);
-  const ind = window.Hyperliquid ? window.Hyperliquid.getPrice(sym) : null;
-
-  // Random agent assignment for variety
-  const agent = pick(CRYPTO_AGENTS);
-  const decision = window.Hyperliquid && window.Hyperliquid.decideAction
-    ? null  // we'll compute properly below using real indicators
-    : null;
+  const price = window.Hyperliquid ? (window.Hyperliquid.getPrice(sym) || 0) : 0;
+  const ind = window.Hyperliquid ? window.Hyperliquid.getIndicatorsSync(sym) : null;
+  const dec = (window.Hyperliquid && agent && ind) ? window.Hyperliquid.decideAction(agent.name.toLowerCase(), sym, ind) : null;
 
   // Build outcome based on station kind
   if (st.kind === 'crypto_trade') {
-    // Try to get fresh indicators
-    let decisionData = null;
-    if (window.Hyperliquid && window.Hyperliquid.getIndicators) {
-      // Note: this is async — fall back to price-only
-    }
-    // For sync use, just use current price
-    const price = ind || 0;
-    const side = Math.random() < 0.55 ? 'BUY' : 'SELL';
-    const win = Math.random() < 0.65;  // baseline until we have full decision
     const qty = sym === 'BTC' ? 0.01 : sym === 'ETH' ? 0.1 : 0.5;
-    const delta = win ? rnd(50, 300) : -rnd(40, 200);
-    return {
-      bubble: `${side==='BUY'?'Long':'Short'} ${sym}…`,
-      balanceDelta: delta, pnlDelta: delta, taskInc: 1,
-      crypto_trade: {side, symbol: sym, qty, price},
-      notif: {
-        ic: delta >= 0 ? '📈' : '📉',
-        text: `${side} ${sym} ×${qty} @ $${price.toFixed(2)} → ${fmtSigned(delta)}`,
-        kind: delta >= 0 ? 'up' : 'down',
-      },
-    };
+    if (ind && dec) {
+      if (dec.action === 'hold' || dec.action === 'skip') {
+        return {
+          bubble: `Hold ${sym}…`,
+          balanceDelta: 0, pnlDelta: 0, taskInc: 1,
+          notif: {
+            ic: '⚖️',
+            text: `Checked ${sym}: decided to HOLD (${dec.rating}) · RSI ${ind.rsi.toFixed(0)}`,
+            kind: 'plain',
+          },
+        };
+      }
+      
+      const side = dec.action === 'buy' ? 'BUY' : 'SELL';
+      const winRate = dec.confidence;
+      const win = Math.random() < winRate;
+      
+      const atrVal = dec.atr || (price * 0.01);
+      const volatilityScaling = atrVal / (price * 0.01 || 1);
+      const baseMag = rnd(50, 300);
+      const delta = (win ? 1 : -1) * baseMag * Math.max(0.5, Math.min(2.0, volatilityScaling));
+      
+      return {
+        bubble: `${side==='BUY'?'Long':'Short'} ${sym} (${dec.rating} ${Math.round(winRate*100)}% wr)…`,
+        balanceDelta: delta, pnlDelta: delta, taskInc: 1,
+        crypto_trade: {side, symbol: sym, qty, price},
+        notif: {
+          ic: delta >= 0 ? '📈' : '📉',
+          text: `${side} ${sym} ×${qty} @ $${price.toFixed(2)} [${dec.rating}] → ${fmtSigned(delta)}`,
+          kind: delta >= 0 ? 'up' : 'down',
+        },
+      };
+    } else {
+      // For sync use, just use current price
+      const side = Math.random() < 0.55 ? 'BUY' : 'SELL';
+      const win = Math.random() < 0.65;  // baseline until we have full decision
+      const delta = win ? rnd(50, 300) : -rnd(40, 200);
+      return {
+        bubble: `${side==='BUY'?'Long':'Short'} ${sym}…`,
+        balanceDelta: delta, pnlDelta: delta, taskInc: 1,
+        crypto_trade: {side, symbol: sym, qty, price},
+        notif: {
+          ic: delta >= 0 ? '📈' : '📉',
+          text: `${side} ${sym} ×${qty} @ $${price.toFixed(2)} → ${fmtSigned(delta)}`,
+          kind: delta >= 0 ? 'up' : 'down',
+        },
+      };
+    }
   }
   if (st.kind === 'crypto_funding') {
     const symbols = ['BTC','ETH','SOL'];
     const s = pick(symbols);
-    return out('💸', `Funding rate check: ${s} ${rnd(-2, 5).toFixed(4)}%`, st, 1, [`Checking ${s} funding`, `Reading perp funding`, `Comparing funding rates`]);
+    return out('💸', `Funding rate check: ${s} ${rnd(-2, 5).toFixed(4)}%`, st, 1, pick([`Checking ${s} funding`, `Reading perp funding`, `Comparing funding rates`]));
   }
   if (st.kind === 'crypto_hedge') {
     return out('⚖️', `Hedge ratio recalc`, st, 1, pick([`Recalculating delta`, `Rebalancing hedge`, `Adjusting delta-neutral`]));
@@ -83,13 +107,16 @@ function generateCryptoOutcome(st) {
     return out('🧪', `Backtest beat SPY by ${x}% on ${s}`, st, 1, pick([`Backtesting ${s}`, `Reviewing the journal`, `Stress-testing risk`]));
   }
   if (st.kind === 'crypto_spot') {
-    return out('🏦', pick([`Spot long: ${sym}`, `Accumulating spot`, `HODL position review`]), st, 1, pick([`Spot desk review`, `Long-term hold check`, `Cold storage verify`]));
+    const text = ind ? `Spot long: ${sym} @ $${price.toFixed(2)} (${dec ? dec.rating : 'HOLD'})` : `Spot long: ${sym}`;
+    return out('🏦', text, st, 1, pick([`Spot desk review`, `Long-term HODL check`, `Cold storage verify`]));
   }
   if (st.kind === 'crypto_risk') {
-    return out('🛡️', pick([`VaR 1.2% · OK`, `Position size OK`, `Margin 18% · safe`]), st, 1, pick([`Risk check`, `Margin review`, `Leverage cap`]));
+    const text = ind && ind.atr ? `Risk check: ${sym} ATR $${ind.atr.toFixed(2)} · volatility ${ind.bollinger ? (ind.bollinger.bandwidth*100).toFixed(1)+'%' : 'normal'}` : `VaR 1.2% · position size OK`;
+    return out('🛡️', text, st, 1, pick([`Risk check`, `Margin review`, `Leverage cap`]));
   }
   if (st.kind === 'crypto_chart') {
-    return out('📊', `Chart pattern on ${sym}`, st, 1, pick([`Reading ${sym} 4H`, `Scanning support/resistance`, `Marking levels`]));
+    const text = ind ? `Chart pattern on ${sym}: RSI is ${ind.rsi.toFixed(0)} (${ind.rsi < 35 ? 'oversold' : ind.rsi > 65 ? 'overbought' : 'neutral'})` : `Chart pattern on ${sym}`;
+    return out('📊', text, st, 1, pick([`Reading ${sym} 4H`, `Scanning support/resistance`, `Marking levels`]));
   }
   if (st.kind === 'crypto_news') {
     return out('📰', pick([`${sym} headline scan`, `Macro news digest`, `Sentiment update`]), st, 1, pick([`Reading headlines`, `Scanning news wire`, `Sentiment check`]));

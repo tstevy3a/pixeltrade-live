@@ -10,6 +10,7 @@
 
   let priceCache = {};   // {symbol: {price, ts}}
   let candleCache = {};  // {symbol_interval: {candles, ts}}
+  let indicatorCache = {}; // {symbol: indicators}
   const subscribers = new Set();
 
   async function postJson(body) {
@@ -160,8 +161,22 @@
   }
 
   function emitUpdate() {
-    const snapshot = {prices: {...priceCache}};
+    const snapshot = {prices: {...priceCache}, indicators: {...indicatorCache}};
     subscribers.forEach(cb => { try { cb(snapshot); } catch(e){console.warn(e);} });
+  }
+
+  async function pollAllIndicators() {
+    for (const sym of DEFAULT_SYMBOLS) {
+      try {
+        const candles = await pollCandles(sym, '1h');
+        if (candles && candles.length) {
+          indicatorCache[sym] = computeIndicators(candles);
+        }
+      } catch(e) {
+        console.warn('[Hyperliquid] failed to poll indicators for', sym, e);
+      }
+    }
+    emitUpdate();
   }
 
   // === Public API ===
@@ -169,7 +184,9 @@
   function start() {
     if (window.__hlTimer) return;
     pollMids();
+    pollAllIndicators();
     window.__hlTimer = setInterval(pollMids, POLL_MS);
+    window.__hlIndTimer = setInterval(pollAllIndicators, POLL_CANDLE_MS);
   }
 
   function getPrices() {
@@ -185,9 +202,17 @@
     return computeIndicators(candles);
   }
 
+  function getIndicatorsSync(symbol) {
+    return indicatorCache[symbol] || null;
+  }
+
+  function getIndicatorsAll() {
+    return {...indicatorCache};
+  }
+
   function onUpdate(cb) {
     subscribers.add(cb);
-    cb({prices: getPrices()});
+    cb({prices: getPrices(), indicators: {...indicatorCache}});
     return () => subscribers.delete(cb);
   }
 
@@ -283,7 +308,7 @@
   }
 
   window.Hyperliquid = {
-    start, getPrices, getPrice, getIndicators, onUpdate, decideAction,
+    start, getPrices, getPrice, getIndicators, getIndicatorsSync, getIndicatorsAll, onUpdate, decideAction,
     mode: 'testnet',
   };
 

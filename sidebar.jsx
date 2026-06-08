@@ -66,8 +66,11 @@ function NavBtn({icon,label,id,view,setView,badge}){
   );
 }
 
-function Sidebar({view,setView,balance,pnlToday,tasksDone,notifs,equity,statusLabel,running,agents,cryptoBalance,cryptoPnl,cryptoPrices,cryptoMode}){
+function Sidebar({view,setView,balance,pnlToday,tasksDone,notifs,equity,statusLabel,running,agents,cryptoBalance,cryptoPnl,cryptoPrices,cryptoMode,cryptoAgents,cryptoNotifs}){
   const listRef = React.useRef(null);
+  const currentAgents = view === 'crypto' ? cryptoAgents : agents;
+  const currentNotifs = view === 'crypto' ? cryptoNotifs : notifs;
+
   return (
     <aside className="sidebar">
       <div className="side-card frame tight">
@@ -77,7 +80,7 @@ function Sidebar({view,setView,balance,pnlToday,tasksDone,notifs,equity,statusLa
             <h1>PIXELTRADE</h1>
             <div className="sub">
               <span className="status-dot" style={{background: running?'var(--up)':'var(--gold)'}}></span>
-              {running? `${agents?agents.length:0} agents on the floor` : 'floor paused'}
+              {running? `${currentAgents?currentAgents.length:0} agents on the floor` : 'floor paused'}
             </div>
             <div style={{marginTop:6}}><LiveBadge /></div>
           </div>
@@ -105,6 +108,7 @@ function Sidebar({view,setView,balance,pnlToday,tasksDone,notifs,equity,statusLa
         <Spark data={equity} />
       </div>
 
+      {(view === 'crypto' || view === 'dashboard' || view === 'analysis') && (
       <div className="side-card frame">
         <div className="label">🪙 Crypto Stats <span className="mode-tag">{cryptoMode}</span></div>
         <div className="stats">
@@ -119,11 +123,12 @@ function Sidebar({view,setView,balance,pnlToday,tasksDone,notifs,equity,statusLa
             <span className="v mono">{cryptoPrices.SOL ? '$' + cryptoPrices.SOL.price.toFixed(2) : '—'}</span></div>
         </div>
       </div>
+      )}
 
       <div className="side-card frame tight">
         <div className="label">The Team</div>
         <div className="team">
-          {(agents||[]).map(a=>{
+          {(currentAgents||[]).map(a=>{
             const act = a.phase==='working' ? (a.atStation||'working')
                       : a.phase==='walking' ? 'on the move' : 'idle';
             return (
@@ -142,8 +147,8 @@ function Sidebar({view,setView,balance,pnlToday,tasksDone,notifs,equity,statusLa
       <div className="side-card frame notif-wrap">
         <div className="label">Activity Log</div>
         <div className="notif-list" ref={listRef}>
-          {notifs.length===0 && <div className="mono muted" style={{fontSize:16}}>Waiting for the agent…</div>}
-          {notifs.map(n=>(
+          {currentNotifs.length===0 && <div className="mono muted" style={{fontSize:16}}>Waiting for the agent…</div>}
+          {currentNotifs.map(n=>(
             <div key={n.id} className={'notif '+(n.kind||'plain')}>
               <span className="ic">{n.ic}</span>
               <div>

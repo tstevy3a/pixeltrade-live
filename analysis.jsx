@@ -3,81 +3,163 @@
 const {ANALYSIS_SCENARIOS, createWorkflowAnalysis, normalizeTicker} = AnalysisModel;
 
 function LivePanel(){
-  const [data, setData] = React.useState(window.LiveData ? window.LiveData.getAll() : {});
-  const [meta, setMeta] = React.useState(window.LiveData ? window.LiveData.getMeta() : { refreshed_at: null, scan_meta: {} });
-  const [_, setTick] = React.useState(0);
+  const [assetClass, setAssetClass] = React.useState('stocks');
+  const [stockData, setStockData] = React.useState(window.LiveData ? window.LiveData.getAll() : {});
+  const [stockMeta, setStockMeta] = React.useState(window.LiveData ? window.LiveData.getMeta() : { refreshed_at: null, scan_meta: {} });
+  
+  const [cryptoData, setCryptoData] = React.useState(window.Hyperliquid ? window.Hyperliquid.getIndicatorsAll() : {});
+  const [cryptoPrices, setCryptoPrices] = React.useState(window.Hyperliquid ? window.Hyperliquid.getPrices() : {});
+  const [tick, setTick] = React.useState(0);
 
   React.useEffect(()=>{
     if (!window.LiveData) return;
     const off = window.LiveData.onUpdate((c)=>{
-      setData(c.tickers || {});
-      setMeta({
+      setStockData(c.tickers || {});
+      setStockMeta({
         refreshed_at: c.refreshed_at,
         scan_meta: c.scan_meta || {},
         version: c.version,
         source: c.source,
       });
     });
-    // re-render every 30s for age display
-    const i = setInterval(()=> setTick(t=>t+1), 30000);
-    return ()=> { off && off(); clearInterval(i); };
+    return ()=> { off && off(); };
   }, []);
 
-  const tickers = Object.entries(data);
-  const scanType = (meta.scan_meta && meta.scan_meta.scan_type) || '—';
-  const scanners = (meta.scan_meta && meta.scan_meta.scanners_used) || [];
-  const ageText = meta.refreshed_at
-    ? Math.round((Date.now() - Date.parse(meta.refreshed_at)) / 60000) + 'm ago'
+  React.useEffect(()=>{
+    if (!window.Hyperliquid) return;
+    const off = window.Hyperliquid.onUpdate((snap)=>{
+      setCryptoPrices(snap.prices || {});
+      setCryptoData(snap.indicators || {});
+    });
+    return ()=> { off && off(); };
+  }, []);
+
+  React.useEffect(()=>{
+    const i = setInterval(()=> setTick(t=>t+1), 30000);
+    return ()=> clearInterval(i);
+  }, []);
+
+  const showStocks = assetClass === 'stocks';
+  const stockTickers = Object.entries(stockData);
+  const cryptoTickers = Object.entries(cryptoData);
+
+  const stockAgeText = stockMeta.refreshed_at
+    ? Math.round((Date.now() - Date.parse(stockMeta.refreshed_at)) / 60000) + 'm ago'
     : 'never';
 
   return (
     <div className="live-panel">
-      <h3>📡 Live Indicators</h3>
-      <div className="meta">
-        {tickers.length === 0
-          ? <>No data yet — ask Hermes: <code>refresh pixeltrade indicators</code></>
-          : <>Last refresh: <b>{ageText}</b> · scan type: <b>{scanType}</b>{scanners.length>0 && <> · from {scanners.length} scanners</>}</>
-        }
+      <div className="live-panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <h3 style={{ margin: 0 }}>📡 Live Indicators</h3>
+        <div className="seg" style={{ marginBottom: 0 }}>
+          <button className={assetClass === 'stocks' ? 'on' : ''} onClick={() => setAssetClass('stocks')}>Stocks</button>
+          <button className={assetClass === 'crypto' ? 'on' : ''} onClick={() => setAssetClass('crypto')}>Crypto</button>
+        </div>
       </div>
-      {tickers.length > 0 && (
-        <table>
-          <thead>
-            <tr>
-              <th>Ticker</th>
-              <th>Price</th>
-              <th>Δ%</th>
-              <th>RSI</th>
-              <th>MACD</th>
-              <th>BB</th>
-              <th>Rec</th>
-              <th>Reasons</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tickers.map(([t, d]) => (
-              <tr key={t}>
-                <td><b>{t}</b></td>
-                <td>${d.price != null ? d.price.toFixed(2) : '—'}</td>
-                <td className={d.change_pct >= 0 ? 'up' : 'down'}>
-                  {d.change_pct != null ? (d.change_pct >= 0 ? '+' : '') + d.change_pct.toFixed(2) + '%' : '—'}
-                </td>
-                <td className={d.rsi < 30 ? 'oversold' : d.rsi > 70 ? 'overbought' : ''}>
-                  {d.rsi != null ? d.rsi.toFixed(0) : '—'}
-                </td>
-                <td className={d.macd_signal === 'bullish' ? 'up' : d.macd_signal === 'bearish' ? 'down' : ''}>
-                  {d.macd_signal || '—'}
-                </td>
-                <td>{d.bb_rating != null ? (d.bb_rating > 0 ? '+' : '') + d.bb_rating : '—'}</td>
-                <td className={'rec-' + (d.recommendation || 'neutral').toLowerCase().replace('_','-')}>
-                  {d.recommendation || '—'}
-                </td>
-                <td>
-                  {(d.picked_reasons || []).map(r => <span className="reason-tag" key={r}>{r.replace(/_/g, ' ')}</span>)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+
+      {showStocks ? (
+        <>
+          <div className="meta">
+            {stockTickers.length === 0
+              ? <>No data yet — ask Hermes: <code>refresh pixeltrade indicators</code></>
+              : <>Last refresh: <b>{stockAgeText}</b> · scan type: <b>{stockMeta.scan_meta.scan_type || '—'}</b>{(stockMeta.scan_meta.scanners_used || []).length>0 && <> · from {(stockMeta.scan_meta.scanners_used || []).length} scanners</>}</>
+            }
+          </div>
+          {stockTickers.length > 0 && (
+            <table>
+              <thead>
+                <tr>
+                  <th>Ticker</th>
+                  <th>Price</th>
+                  <th>Δ%</th>
+                  <th>RSI</th>
+                  <th>MACD</th>
+                  <th>BB</th>
+                  <th>Rec</th>
+                  <th>Reasons</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stockTickers.map(([t, d]) => (
+                  <tr key={t}>
+                    <td><b>{t}</b></td>
+                    <td>${d.price != null ? d.price.toFixed(2) : '—'}</td>
+                    <td className={d.change_pct >= 0 ? 'up' : 'down'}>
+                      {d.change_pct != null ? (d.change_pct >= 0 ? '+' : '') + d.change_pct.toFixed(2) + '%' : '—'}
+                    </td>
+                    <td className={d.rsi < 30 ? 'oversold' : d.rsi > 70 ? 'overbought' : ''}>
+                      {d.rsi != null ? d.rsi.toFixed(0) : '—'}
+                    </td>
+                    <td className={d.macd_signal === 'bullish' ? 'up' : d.macd_signal === 'bearish' ? 'down' : ''}>
+                      {d.macd_signal || '—'}
+                    </td>
+                    <td>{d.bb_rating != null ? (d.bb_rating > 0 ? '+' : '') + d.bb_rating : '—'}</td>
+                    <td className={'rec-' + (d.recommendation || 'neutral').toLowerCase().replace('_','-')}>
+                      {d.recommendation || '—'}
+                    </td>
+                    <td>
+                      {(d.picked_reasons || []).map(r => <span className="reason-tag" key={r}>{r.replace(/_/g, ' ')}</span>)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </>
+      ) : (
+        <>
+          <div className="meta">
+            {cryptoTickers.length === 0
+              ? <>No data yet — connecting to Hyperliquid testnet...</>
+              : <>Live connection to <b>Hyperliquid Testnet API</b> (updating every 30s)</>
+            }
+          </div>
+          {cryptoTickers.length > 0 && (
+            <table>
+              <thead>
+                <tr>
+                  <th>Symbol</th>
+                  <th>Price</th>
+                  <th>Δ%</th>
+                  <th>RSI</th>
+                  <th>MACD</th>
+                  <th>BB Width</th>
+                  <th>Rec</th>
+                  <th>Reasons</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cryptoTickers.map(([t, d]) => {
+                  const dec = window.Hyperliquid ? window.Hyperliquid.decideAction('nova', t, d) : null;
+                  const priceObj = cryptoPrices[t];
+                  const livePrice = priceObj ? priceObj.price : d.price;
+                  return (
+                    <tr key={t}>
+                      <td><b>{t}</b></td>
+                      <td>${livePrice != null ? livePrice.toLocaleString('en-US', {maximumFractionDigits:2}) : '—'}</td>
+                      <td className={d.change_pct >= 0 ? 'up' : 'down'}>
+                        {d.change_pct != null ? (d.change_pct >= 0 ? '+' : '') + d.change_pct.toFixed(2) + '%' : '—'}
+                      </td>
+                      <td className={d.rsi < 30 ? 'oversold' : d.rsi > 70 ? 'overbought' : ''}>
+                        {d.rsi != null ? d.rsi.toFixed(0) : '—'}
+                      </td>
+                      <td className={d.macd && d.macd.trend === 'bullish' ? 'up' : d.macd && d.macd.trend === 'bearish' ? 'down' : ''}>
+                        {(d.macd && d.macd.trend) || '—'}
+                      </td>
+                      <td>{d.bollinger ? (d.bollinger.bandwidth * 100).toFixed(1) + '%' : '—'}</td>
+                      <td className={'rec-' + (dec ? dec.rating.toLowerCase().replace('_','-') : 'neutral')}>
+                        {dec ? dec.rating : '—'}
+                      </td>
+                      <td style={{ fontSize: 13, color: '#8a7a5a' }}>
+                        {dec ? dec.reason.split(' — ')[1] || 'No clear signal' : '—'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </>
       )}
     </div>
   );
