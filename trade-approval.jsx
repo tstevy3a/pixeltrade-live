@@ -17,7 +17,7 @@ function TradeApproval({pending, onApprove, onReject}) {
     <div className="approval-overlay">
       <div className="approval-box frame">
         <div className="approval-header">
-          <span className="approval-icon">{isBuy ? '📈' : '📉'}</span>
+          <span className="approval-icon">{isBuy ? '\u{1F4C8}' : '\u{1F4C9}'}</span>
           <span className="approval-title">{side} {symbol}</span>
           <span className={'approval-badge '+(isBuy?'up':'down')}>{rating}</span>
         </div>
@@ -29,8 +29,8 @@ function TradeApproval({pending, onApprove, onReject}) {
           <div className="approval-reason">{reason}</div>
         </div>
         <div className="approval-actions">
-          <button className="approval-reject" onClick={onReject}>✕ Cancel</button>
-          <button className="approval-approve" onClick={()=>onApprove(pending)}>✓ Execute ({countdown}s)</button>
+          <button className="approval-reject" onClick={onReject}>Cancel</button>
+          <button className="approval-approve" onClick={()=>onApprove(pending)}>Execute ({countdown}s)</button>
         </div>
       </div>
     </div>
