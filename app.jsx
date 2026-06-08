@@ -24,7 +24,8 @@ function App(){
     AGENTS.map((a,i)=>({...a, pos:{...STARTS[i]}, flip:false, walking:false, bubble:null})));
   const [busySet,setBusySet] = useState({});       // stationId -> agentId
   const [floor,setFloor]     = useState({working:0, walking:0});
-  const [clock,setClock]     = useState(540);          // 9:00 ICT (Thailand market open)
+  const [clock,setClock] = useState(fmtClock());
+  useEffect(()=>{ const t=setInterval(()=>setClock(fmtClock()),1000); return()=>clearInterval(t); },[]);
   const [day,setDay]         = useState(1);
   const [speed,setSpeed]     = useState(1);
   const [settings,setSettings] = useState({autopilot:true, anim:true, tint:true, aggr:1, labels:true, names:true, tz:'ICT'});
@@ -337,7 +338,7 @@ function App(){
               <div className="act">{statusLine}</div>
             </div>
           </div>
-          <div className="clock">Day {day} · {fmtClock(clock)} ICT</div>
+          <div className="clock">{clock} ICT</div>
           <div className="seg">
             {[1,2,4].map(s=> <button key={s} className={speed===s?'on':''} onClick={()=>setSpeed(s)}>{s}×</button>)}
           </div>

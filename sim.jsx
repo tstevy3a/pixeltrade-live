@@ -29,10 +29,8 @@ const pick = arr => arr[Math.floor(Math.random()*arr.length)];
 
 function fmtMoney(n){ return '$'+Math.round(n).toLocaleString('en-US'); }
 function fmtSigned(n){ const s=n>=0?'+':'-'; return s+'$'+Math.abs(Math.round(n)).toLocaleString('en-US'); }
-function fmtClock(mins){
-  let h=Math.floor(mins/60), m=mins%60; const ap=h>=12?'PM':'AM';
-  let hh=h%12; if(hh===0) hh=12;
-  return `${hh}:${String(m).padStart(2,'0')} ${ap}`;
+function fmtClock(){
+  return new Date().toLocaleTimeString('th-TH',{timeZone:'Asia/Bangkok',hour:'2-digit',minute:'2-digit',hour12:false});
 }
 
 // what happens when the agent finishes working a station
