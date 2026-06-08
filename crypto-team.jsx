@@ -48,78 +48,69 @@ function generateCryptoOutcome(st, agent) {
       if (dec.action === 'hold' || dec.action === 'skip') {
         return {
           bubble: `Hold ${sym}…`,
-          balanceDelta: 0, pnlDelta: 0, taskInc: 1,
-          notif: {
-            ic: '⚖️',
-            text: `Checked ${sym}: decided to HOLD (${dec.rating}) · RSI ${ind.rsi.toFixed(0)}`,
-            kind: 'plain',
-          },
+          taskInc: 1,
+          notif: { ic: '⚖️', text: `${sym} @ $${price.toFixed(0)} — HOLD (${dec.rating}) · RSI ${ind.rsi.toFixed(0)} · ${dec.reason}`, kind: 'plain' },
         };
       }
-      
       const side = dec.action === 'buy' ? 'BUY' : 'SELL';
-      const winRate = dec.confidence;
-      const win = Math.random() < winRate;
-      
-      const atrVal = dec.atr || (price * 0.01);
-      const volatilityScaling = atrVal / (price * 0.01 || 1);
-      const baseMag = rnd(50, 300);
-      const delta = (win ? 1 : -1) * baseMag * Math.max(0.5, Math.min(2.0, volatilityScaling));
-      
       return {
-        bubble: `${side==='BUY'?'Long':'Short'} ${sym} (${dec.rating} ${Math.round(winRate*100)}% wr)…`,
-        balanceDelta: delta, pnlDelta: delta, taskInc: 1,
+        bubble: `${side==='BUY'?'Long':'Short'} ${sym} [${dec.rating}]…`,
+        taskInc: 1,
         crypto_trade: {side, symbol: sym, qty, price},
         notif: {
-          ic: delta >= 0 ? '📈' : '📉',
-          text: `${side} ${sym} ×${qty} @ $${price.toFixed(2)} [${dec.rating}] → ${fmtSigned(delta)}`,
-          kind: delta >= 0 ? 'up' : 'down',
-        },
-      };
-    } else {
-      // For sync use, just use current price
-      const side = Math.random() < 0.55 ? 'BUY' : 'SELL';
-      const win = Math.random() < 0.65;  // baseline until we have full decision
-      const delta = win ? rnd(50, 300) : -rnd(40, 200);
-      return {
-        bubble: `${side==='BUY'?'Long':'Short'} ${sym}…`,
-        balanceDelta: delta, pnlDelta: delta, taskInc: 1,
-        crypto_trade: {side, symbol: sym, qty, price},
-        notif: {
-          ic: delta >= 0 ? '📈' : '📉',
-          text: `${side} ${sym} ×${qty} @ $${price.toFixed(2)} → ${fmtSigned(delta)}`,
-          kind: delta >= 0 ? 'up' : 'down',
+          ic: side==='BUY' ? '📈' : '📉',
+          text: `${side} ${sym} ×${qty} @ $${price.toFixed(0)} [${dec.rating} ${Math.round(dec.confidence*100)}%] · ${dec.reason}`,
+          kind: side==='BUY' ? 'up' : 'down',
         },
       };
     }
+    // no indicators yet — just observe
+    return {
+      bubble: `Watching ${sym}…`,
+      taskInc: 1,
+      notif: { ic: '👁️', text: `${sym} @ $${price.toFixed(0)} — waiting for signal`, kind: 'plain' },
+    };
   }
   if (st.kind === 'crypto_funding') {
-    const symbols = ['BTC','ETH','SOL'];
-    const s = pick(symbols);
-    return out('💸', `Funding rate check: ${s} ${rnd(-2, 5).toFixed(4)}%`, st, 1, pick([`Checking ${s} funding`, `Reading perp funding`, `Comparing funding rates`]));
+    const s = pick(['BTC','ETH','SOL']);
+    const rate = rnd(-0.05, 0.12).toFixed(4);
+    const bias = parseFloat(rate) > 0 ? 'longs paying shorts' : 'shorts paying longs';
+    return out('💸', `${s} funding rate ${rate}% (${bias})`, st, 1, `Checking ${s} perp funding`);
   }
   if (st.kind === 'crypto_hedge') {
-    return out('⚖️', `Hedge ratio recalc`, st, 1, pick([`Recalculating delta`, `Rebalancing hedge`, `Adjusting delta-neutral`]));
+    const s = pick(['BTC','ETH']);
+    const ratio = rnd(0.3, 0.8).toFixed(2);
+    return out('⚖️', `Delta-neutral hedge on ${s}: ratio ${ratio} · exposure balanced`, st, 1, `Rebalancing ${s} hedge`);
   }
   if (st.kind === 'crypto_backtest') {
-    const x = +(rnd(0.4, 4.2)).toFixed(1);
     const s = pick(['BTC','ETH','SOL']);
-    return out('🧪', `Backtest beat SPY by ${x}% on ${s}`, st, 1, pick([`Backtesting ${s}`, `Reviewing the journal`, `Stress-testing risk`]));
+    const strat = pick(['RSI mean-reversion','EMA cross','BB squeeze','funding arb']);
+    const wr = rnd(48, 72).toFixed(0);
+    return out('🧪', `${strat} on ${s}: ${wr}% win rate over 90d`, st, 1, `Backtesting ${strat} on ${s}`);
   }
   if (st.kind === 'crypto_spot') {
-    const text = ind ? `Spot long: ${sym} @ $${price.toFixed(2)} (${dec ? dec.rating : 'HOLD'})` : `Spot long: ${sym}`;
-    return out('🏦', text, st, 1, pick([`Spot desk review`, `Long-term HODL check`, `Cold storage verify`]));
+    const text = ind ? `Bull case on ${sym} @ $${price.toFixed(0)}: ${dec ? dec.rating : 'accumulate'} · RSI ${ind.rsi.toFixed(0)}` : `Building bull case for ${sym}`;
+    return out('🟢', text, st, 1, `Bull research: ${sym}`);
   }
   if (st.kind === 'crypto_risk') {
-    const text = ind && ind.atr ? `Risk check: ${sym} ATR $${ind.atr.toFixed(2)} · volatility ${ind.bollinger ? (ind.bollinger.bandwidth*100).toFixed(1)+'%' : 'normal'}` : `VaR 1.2% · position size OK`;
-    return out('🛡️', text, st, 1, pick([`Risk check`, `Margin review`, `Leverage cap`]));
+    const text = ind && ind.atr
+      ? `Risk debate on ${sym}: ATR $${ind.atr.toFixed(0)} · stop at ${(price - 2*ind.atr).toFixed(0)} · max size ${((55*0.1)/(2*ind.atr)).toFixed(4)} ${sym}`
+      : `Portfolio risk check: leverage 2x · max loss $5.58/trade`;
+    return out('🛡️', text, st, 1, `Risk debate: ${sym} position sizing`);
   }
   if (st.kind === 'crypto_chart') {
-    const text = ind ? `Chart pattern on ${sym}: RSI is ${ind.rsi.toFixed(0)} (${ind.rsi < 35 ? 'oversold' : ind.rsi > 65 ? 'overbought' : 'neutral'})` : `Chart pattern on ${sym}`;
-    return out('📊', text, st, 1, pick([`Reading ${sym} 4H`, `Scanning support/resistance`, `Marking levels`]));
+    const rsiLabel = ind ? (ind.rsi < 35 ? 'oversold — watching for reversal' : ind.rsi > 65 ? 'overbought — watching for pullback' : 'neutral zone') : 'scanning levels';
+    const text = ind ? `${sym} chart: RSI ${ind.rsi.toFixed(0)} (${rsiLabel}) · ${ind.macd?.trend || 'MACD'} signal · MACD ${ind.macd?.trend || '—'}` : `Reading ${sym} chart`;
+    return out('📊', text, st, 1, `Technical scan: ${sym} 4H`);
   }
   if (st.kind === 'crypto_news') {
-    return out('📰', pick([`${sym} headline scan`, `Macro news digest`, `Sentiment update`]), st, 1, pick([`Reading headlines`, `Scanning news wire`, `Sentiment check`]));
+    const headlines = [
+      `${sym} whale wallet moved $${rnd(1,50).toFixed(0)}M on-chain — monitoring`,
+      `Macro update: Fed minutes neutral · ${sym} holding key level`,
+      `${sym} options OI up ${rnd(5,25).toFixed(0)}% · sentiment ${pick(['bullish','bearish','mixed'])}`,
+      `Funding sentiment for ${sym}: ${pick(['greed index 72','fear index 38','neutral 51'])}`,
+    ];
+    return out('📰', pick(headlines), st, 1, `News scan: ${sym} catalysts`);
   }
   if (st.kind === 'rest') return out('🛋️', pick([`Focus recharged`, `Patience — waiting`]), st, 0, pick([`Brewing coffee`, `Catching a breather`]));
   if (st.kind === 'break') return out('🥤', pick([`Quick stretch`, `Hydration break`]), st, 0, pick([`Quick break`, `Stretching it out`]));

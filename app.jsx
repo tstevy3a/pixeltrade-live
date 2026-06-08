@@ -225,7 +225,7 @@ function App(){
           const p=self.pending; self.pending=null;
           if(p && p.oc){
             if(p.oc.crypto_trade){
-              cryptoBalRef.current+=p.oc.balanceDelta; setCryptoBalance(Math.round(cryptoBalRef.current));
+              // ไม่ override balance จาก Hyperliquid จริง — แค่ track P&L
               cryptoPnlRef.current+=p.oc.pnlDelta; setCryptoPnl(Math.round(cryptoPnlRef.current));
             }
             if(p.oc.taskInc) {/* tasks only on stocks side */}
@@ -308,11 +308,11 @@ function App(){
     balRef.current=START_BAL; pnlRef.current=0; clkRef.current=540; dayRef.current=1;
     agentsRef.current.forEach((a,i)=>{ a.pos={...STARTS[i]}; a.target=null; a.phase='idle';
       a.workT=0; a.idleT=rnd(0.4,2.6+i*0.4); a.pending=null; a.lastSt=null; a.flip=false; a.bubble=null; });
-    cryptoBalRef.current=100000; cryptoPnlRef.current=0;
+    cryptoPnlRef.current=0;
     cryptoAgentsRef.current.forEach((a,i)=>{ a.pos={...CRYPTO_STARTS[i]}; a.target=null; a.phase='idle';
       a.workT=0; a.idleT=rnd(0.4,2.6+i*0.4); a.pending=null; a.lastSt=null; a.flip=false; a.bubble=null; });
     setBalance(START_BAL); setPnl(0); setTasks(0); setNotifs([]); setHistory([]);
-    setCryptoBalance(100000); setCryptoPnl(0); setCryptoNotifs([]); setCryptoHistory([]);
+    setCryptoPnl(0); setCryptoNotifs([]); setCryptoHistory([]);  // ไม่ reset cryptoBalance — ใช้จาก Hyperliquid จริง
     setEquity([START_BAL]); setBusySet({}); setClock(540); setDay(1);
     setAgentView(AGENTS.map((a,i)=>({...a, pos:{...STARTS[i]}, flip:false, walking:false, bubble:null})));
     setCryptoAgentView((window.CRYPTO_AGENTS || []).map((a,i)=>({...a, pos:{...CRYPTO_STARTS[i]}, flip:false, walking:false, bubble:null})));
@@ -339,9 +339,6 @@ function App(){
             </div>
           </div>
           <div className="clock">{clock} ICT</div>
-          <div className="seg">
-            {[1,2,4].map(s=> <button key={s} className={speed===s?'on':''} onClick={()=>setSpeed(s)}>{s}×</button>)}
-          </div>
         </div>
 
         {view==='dashboard' &&
