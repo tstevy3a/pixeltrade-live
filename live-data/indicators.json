@@ -1,11 +1,186 @@
 {
   "version": 2,
-  "refreshed_at": null,
-  "source": "tradingview-mcp",
+  "refreshed_at": "2026-06-08T00:31:47.364260+00:00",
+  "source": "tradingview-mcp-scanners",
   "scan_meta": {
-    "scan_date": null,
-    "scan_type": null,
-    "scanners_used": []
+    "scan_date": "2026-06-08",
+    "scan_type": "pre_market",
+    "scanners_used": [
+      "top_gainers",
+      "volume_breakout_scanner",
+      "bollinger_scan",
+      "smart_volume_scanner"
+    ]
   },
-  "tickers": {}
+  "tickers": {
+    "SPHL": {
+      "price": 5.35,
+      "change_pct": 123.849,
+      "recommendation": "STRONG_BUY",
+      "buy_signals": 3,
+      "sell_signals": 0,
+      "rsi": 83.3,
+      "macd_signal": "bullish",
+      "bb_rating": 2,
+      "picked_reasons": [
+        "top_gainer"
+      ],
+      "fetched_at": "2026-06-08T00:31:47.364260+00:00"
+    },
+    "NOTV": {
+      "price": 0.1661,
+      "change_pct": 94.496,
+      "recommendation": "NEUTRAL",
+      "buy_signals": 0,
+      "sell_signals": 0,
+      "rsi": 38.9,
+      "macd_signal": "neutral",
+      "bb_rating": -1,
+      "picked_reasons": [
+        "top_gainer"
+      ],
+      "fetched_at": "2026-06-08T00:31:47.364260+00:00"
+    },
+    "FGMCU": {
+      "price": 17.09,
+      "change_pct": 47.201,
+      "recommendation": "STRONG_BUY",
+      "buy_signals": 4,
+      "sell_signals": 0,
+      "rsi": 96.1,
+      "macd_signal": "bullish",
+      "bb_rating": 2,
+      "picked_reasons": [
+        "top_gainer"
+      ],
+      "fetched_at": "2026-06-08T00:31:47.364260+00:00"
+    },
+    "SUGP": {
+      "price": 0.9956,
+      "change_pct": 42.229,
+      "recommendation": "NEUTRAL",
+      "buy_signals": 0,
+      "sell_signals": 0,
+      "rsi": 31.2,
+      "macd_signal": "neutral",
+      "bb_rating": -1,
+      "picked_reasons": [
+        "top_gainer"
+      ],
+      "fetched_at": "2026-06-08T00:31:47.364260+00:00"
+    },
+    "SNBR": {
+      "price": 0.4776,
+      "change_pct": 39.486,
+      "recommendation": "NEUTRAL",
+      "buy_signals": 0,
+      "sell_signals": 0,
+      "rsi": 27.2,
+      "macd_signal": "neutral",
+      "bb_rating": -2,
+      "picked_reasons": [
+        "top_gainer"
+      ],
+      "fetched_at": "2026-06-08T00:31:47.364260+00:00"
+    },
+    "BNAI": {
+      "price": 22.17,
+      "change_pct": 35.929,
+      "recommendation": "NEUTRAL",
+      "buy_signals": 0,
+      "sell_signals": 0,
+      "rsi": 51.9,
+      "macd_signal": "bullish",
+      "bb_rating": 0,
+      "picked_reasons": [
+        "top_gainer"
+      ],
+      "fetched_at": "2026-06-08T00:31:47.364260+00:00"
+    },
+    "YXT": {
+      "price": 0.543,
+      "change_pct": 35.75,
+      "recommendation": "BUY",
+      "buy_signals": 0,
+      "sell_signals": 0,
+      "rsi": 56.2,
+      "macd_signal": "bullish",
+      "bb_rating": 0,
+      "picked_reasons": [
+        "top_gainer"
+      ],
+      "fetched_at": "2026-06-08T00:31:47.364260+00:00"
+    },
+    "PTLE": {
+      "price": 5.9,
+      "change_pct": 31.111,
+      "recommendation": "BUY",
+      "buy_signals": 0,
+      "sell_signals": 0,
+      "rsi": 57.9,
+      "macd_signal": "bullish",
+      "bb_rating": 0,
+      "picked_reasons": [
+        "top_gainer"
+      ],
+      "fetched_at": "2026-06-08T00:31:47.364260+00:00"
+    },
+    "BMGL": {
+      "price": 0.5445,
+      "change_pct": 30.56,
+      "recommendation": "NEUTRAL",
+      "buy_signals": 0,
+      "sell_signals": 0,
+      "rsi": 43.3,
+      "macd_signal": "neutral",
+      "bb_rating": 0,
+      "picked_reasons": [
+        "top_gainer"
+      ],
+      "fetched_at": "2026-06-08T00:31:47.364260+00:00"
+    },
+    "VACHU": {
+      "price": 16.8,
+      "change_pct": 30.233,
+      "recommendation": "BUY",
+      "buy_signals": 0,
+      "sell_signals": 0,
+      "rsi": 59.2,
+      "macd_signal": "bullish",
+      "bb_rating": 0,
+      "picked_reasons": [
+        "top_gainer"
+      ],
+      "fetched_at": "2026-06-08T00:31:47.364260+00:00"
+    },
+    "BAYAU": {
+      "price": 14.59,
+      "change_pct": 20.479,
+      "recommendation": "NEUTRAL",
+      "buy_signals": 0,
+      "sell_signals": 0,
+      "rsi": 55.0,
+      "macd_signal": "bullish",
+      "bb_rating": 0,
+      "picked_reasons": [
+        "volume_breakout",
+        "smart_volume"
+      ],
+      "fetched_at": "2026-06-08T00:31:47.364260+00:00"
+    },
+    "AIXI": {
+      "price": 9.1107,
+      "change_pct": 6.433,
+      "recommendation": "BUY",
+      "buy_signals": 0,
+      "sell_signals": 0,
+      "rsi": 56.4,
+      "macd_signal": "bullish",
+      "bb_rating": 0,
+      "picked_reasons": [
+        "smart_volume"
+      ],
+      "fetched_at": "2026-06-08T00:31:47.364260+00:00"
+    }
+  }
 }
