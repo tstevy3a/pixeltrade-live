@@ -325,7 +325,8 @@ function App(){
 
       <Sidebar view={view} setView={setView} balance={balance} pnlToday={pnlToday}
         tasksDone={tasks} notifs={notifs} equity={equity} running={settings.autopilot}
-        agents={agentView} />
+        agents={agentView}
+        cryptoBalance={cryptoBalance} cryptoPnl={cryptoPnl} cryptoPrices={cryptoPrices} cryptoMode={cryptoMode} />
     </div>
   );
 }

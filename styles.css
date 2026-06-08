@@ -568,3 +568,20 @@ td.down{color:var(--red)}
 .crypto-room {
   background-color: #1a1410;
 }
+
+/* ===== Crypto Stats sidebar (Phase 2A enhancement) ===== */
+.mode-tag {
+  display: inline-block;
+  background: #4a3a1a;
+  color: #e7b53c;
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 2px;
+  margin-left: 6px;
+  letter-spacing: 1px;
+  font-weight: 700;
+}
+.stat .mono {
+  font-family: 'VT323', monospace;
+  font-size: 14px;
+}

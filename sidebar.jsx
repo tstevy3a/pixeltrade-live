@@ -66,7 +66,7 @@ function NavBtn({icon,label,id,view,setView,badge}){
   );
 }
 
-function Sidebar({view,setView,balance,pnlToday,tasksDone,notifs,equity,statusLabel,running,agents}){
+function Sidebar({view,setView,balance,pnlToday,tasksDone,notifs,equity,statusLabel,running,agents,cryptoBalance,cryptoPnl,cryptoPrices,cryptoMode}){
   const listRef = React.useRef(null);
   return (
     <aside className="sidebar">
@@ -95,7 +95,7 @@ function Sidebar({view,setView,balance,pnlToday,tasksDone,notifs,equity,statusLa
       </div>
 
       <div className="side-card frame">
-        <div className="label">Live Stats</div>
+        <div className="label">📈 Stocks Stats</div>
         <div className="stats">
           <div className="stat"><span className="k">Balance</span><span className="v">{fmtMoney(balance)}</span></div>
           <div className="stat"><span className="k">P&amp;L Today</span>
@@ -103,6 +103,21 @@ function Sidebar({view,setView,balance,pnlToday,tasksDone,notifs,equity,statusLa
           <div className="stat"><span className="k">Tasks Done</span><span className="v">{tasksDone}</span></div>
         </div>
         <Spark data={equity} />
+      </div>
+
+      <div className="side-card frame">
+        <div className="label">🪙 Crypto Stats <span className="mode-tag">{cryptoMode}</span></div>
+        <div className="stats">
+          <div className="stat"><span className="k">Balance</span><span className="v">{fmtMoney(cryptoBalance)}</span></div>
+          <div className="stat"><span className="k">P&amp;L Today</span>
+            <span className={'v '+(cryptoPnl>=0?'up':'down')}>{fmtSigned(cryptoPnl)}</span></div>
+          <div className="stat"><span className="k">BTC</span>
+            <span className="v mono">{cryptoPrices.BTC ? '$' + cryptoPrices.BTC.price.toLocaleString('en-US',{maximumFractionDigits:0}) : '—'}</span></div>
+          <div className="stat"><span className="k">ETH</span>
+            <span className="v mono">{cryptoPrices.ETH ? '$' + cryptoPrices.ETH.price.toLocaleString('en-US',{maximumFractionDigits:0}) : '—'}</span></div>
+          <div className="stat"><span className="k">SOL</span>
+            <span className="v mono">{cryptoPrices.SOL ? '$' + cryptoPrices.SOL.price.toFixed(2) : '—'}</span></div>
+        </div>
       </div>
 
       <div className="side-card frame tight">
