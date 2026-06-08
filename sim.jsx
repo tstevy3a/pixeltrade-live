@@ -64,15 +64,70 @@ function generateOutcome(st){
            ' · ' + d.recommendation;
   })();
 
+  // === LEVEL 1: Indicator-aware trade outcomes ===
+  // Win rate 45-75% derived from RSI / MACD / BB / recommendation.
+  // P&L magnitude scaled by BB-width volatility.
+  const indicatorTrade = (side) => {
+    if (!haveLive) return null;
+    const d = LiveData.get(T);
+    if (!d || d.rsi == null) return null;
+
+    // 1) Base win rate
+    let winRate = 0.50;
+
+    // 2) RSI zones (mean-reversion bias)
+    if (d.rsi < 30) winRate += 0.20;             // oversold → likely bounce
+    else if (d.rsi > 70) winRate -= 0.15;        // overbought → likely pullback
+
+    // 3) MACD trend confirmation
+    if (d.macd_signal === 'bullish' && d.change_pct > 0) winRate += 0.10;
+    else if (d.macd_signal === 'bearish' && d.change_pct < 0) winRate += 0.10;
+    else if (d.macd_signal === 'bullish' && d.change_pct < 0) winRate -= 0.05;
+    else if (d.macd_signal === 'bearish' && d.change_pct > 0) winRate -= 0.05;
+
+    // 4) Bollinger Band rating
+    if (d.bb_rating > 0) winRate += 0.05;
+    else if (d.bb_rating < 0) winRate -= 0.05;
+
+    // 5) Recommendation from TradingView
+    if (d.recommendation === 'STRONG_BUY') winRate += 0.05;
+    else if (d.recommendation === 'STRONG_SELL') winRate -= 0.10;
+
+    // Side bias: BUY performs better in bullish setups, SELL in bearish
+    if (side === 'BUY' && d.change_pct < -3) winRate -= 0.10;   // catching falling knife
+    if (side === 'SELL' && d.change_pct > 3) winRate -= 0.10;   // shorting into rally
+
+    // Clamp to realistic range
+    winRate = Math.max(0.45, Math.min(0.75, winRate));
+
+    // 6) P&L magnitude: BB-width volatility scaling
+    // Squeeze (|bb_rating| ≤ 1) → 0.5x–0.8x ; Normal → 1.0x ; Wide (±2/±3) → 1.5x–2.0x
+    const vol = Math.abs(d.bb_rating || 0);
+    const volMul = vol === 0 ? 0.6
+                 : vol === 1 ? 0.85
+                 : vol === 2 ? 1.4
+                 :            2.0;  // vol === 3
+
+    const win  = Math.random() < winRate;
+    const sign2 = win ? 1 : -1;
+    const baseMag = rnd(120, 640);  // base magnitude
+    const delta = sign2 * baseMag * volMul;
+    return { win, delta, winRate, volMul };
+  };
+
   switch(st.kind){
     case 'trade': {
       const side = Math.random()<0.55 ? 'BUY':'SELL';
       const qty = irnd(20,300);
       const price = +(rnd(40,520)).toFixed(2);
-      const win = Math.random()<0.66;
-      const delta = win ? rnd(120,640) : -rnd(80,360);
+      const ind = indicatorTrade(side);
+      // If we have live data, use indicator-aware outcome; else fall back to random 66%
+      const win = ind ? ind.win : (Math.random()<0.66);
+      const delta = ind ? ind.delta : (win ? rnd(120,640) : -rnd(80,360));
+      // Build bubble — show win rate if we have data
+      const bubbleSuffix = ind ? ` (${Math.round(ind.winRate*100)}% wr)` : '';
       return {
-        bubble:`${side==='BUY'?'Buying':'Selling'} ${T}…`,
+        bubble:`${side==='BUY'?'Buying':'Selling'} ${T}${bubbleSuffix}…`,
         balanceDelta:delta, pnlDelta:delta, taskInc:1,
         trade:{ side, ticker:T, qty, price },
         notif:{ ic: delta>=0?'✅':'🔻',
