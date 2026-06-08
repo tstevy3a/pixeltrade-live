@@ -16,7 +16,9 @@ function CryptoAgent({a, scale, showName, z}) {
 
 function CryptoStation({st, busyAgent, onClick, showLabels, price}) {
   const busy = !!busyAgent;
-  const priceText = price != null ? '$' + price.toLocaleString('en-US', {maximumFractionDigits: 2}) : '—';
+  // price may be a number or a {price, ts} object from the cache
+  const px = (price && typeof price === 'object') ? price.price : price;
+  const priceText = px != null ? '$' + px.toLocaleString('en-US', {maximumFractionDigits: 2}) : '—';
   return (
     <div className={'station crypto-station' + (st.zone ? ' work' : '') + (busy ? ' busy' : '')}
       style={{left: st.x + '%', top: st.y + '%'}} onClick={() => onClick(st)} title={st.name}>
@@ -38,10 +40,13 @@ function CryptoRoom({agents, busySet, onStationClick, prices, cryptoMode}) {
           <span className="mode-pill">🪙 {cryptoMode === 'paper' ? 'PAPER' : 'LIVE'}</span>
           <span className="mode-hint">{cryptoMode === 'paper' ? 'Testnet · simulated orders · $0 risk' : 'Mainnet · real money ⚠️'}</span>
         </div>
-        {CRYPTO_STATIONS.map(st => (
-          <CryptoStation key={st.id} st={st} busyAgent={busySet[st.id]} onClick={onStationClick}
-            showLabels={true} price={st.sym ? prices[st.sym] : null} />
-        ))}
+        {CRYPTO_STATIONS.map(st => {
+          const raw = st.sym ? prices[st.sym] : null;
+          return (
+            <CryptoStation key={st.id} st={st} busyAgent={busySet[st.id]} onClick={onStationClick}
+              showLabels={true} price={raw} />
+          );
+        })}
         {agents.map(a => (
           <CryptoAgent key={a.id} a={a} scale={3} showName={true} z={100 + Math.round(a.pos.y)} />
         ))}
