@@ -22,10 +22,10 @@ function App(){
     AGENTS.map((a,i)=>({...a, pos:{...STARTS[i]}, flip:false, walking:false, bubble:null})));
   const [busySet,setBusySet] = useState({});       // stationId -> agentId
   const [floor,setFloor]     = useState({working:0, walking:0});
-  const [clock,setClock]     = useState(570);
+  const [clock,setClock]     = useState(540);          // 9:00 ICT (Thailand market open)
   const [day,setDay]         = useState(1);
   const [speed,setSpeed]     = useState(1);
-  const [settings,setSettings] = useState({autopilot:true, anim:true, tint:true, aggr:1, labels:true, names:true});
+  const [settings,setSettings] = useState({autopilot:true, anim:true, tint:true, aggr:1, labels:true, names:true, tz:'ICT'});
 
   // ---- mutable sim refs ----
   const agentsRef = useRef(AGENTS.map((a,i)=>({
@@ -33,7 +33,7 @@ function App(){
     pos:{...STARTS[i]}, target:null, phase:'idle',
     workT:0, idleT:rnd(0.4, 2.6+i*0.4), pending:null, lastSt:null, flip:false,
   })));
-  const clkRef=useRef(570), dayRef=useRef(1), balRef=useRef(START_BAL), pnlRef=useRef(0), idc=useRef(0);
+  const clkRef=useRef(540), dayRef=useRef(1), balRef=useRef(START_BAL), pnlRef=useRef(0), idc=useRef(0);
   const sRef=useRef(settings), spRef=useRef(speed);
   useEffect(()=>{sRef.current=settings;},[settings]);
   useEffect(()=>{spRef.current=speed;},[speed]);
@@ -70,7 +70,7 @@ function App(){
 
     const applyOutcome=(self,st,oc)=>{
       let c=clkRef.current+irnd(3,11), d=dayRef.current;
-      if(c>=960){ c=570; d+=1; dayRef.current=d; setDay(d);
+      if(c>=930){ c=540; d+=1; dayRef.current=d; setDay(d);
         pnlRef.current=0; setPnl(0);
         pushNotif({ic:'🔔',text:`Market closed — Day ${d} begins`,kind:'plain'}); }
       clkRef.current=c; setClock(c);
@@ -165,11 +165,11 @@ function App(){
   };
   const togglePlay=()=> setSettings(s=>({...s,autopilot:!s.autopilot}));
   const onReset=()=>{
-    balRef.current=START_BAL; pnlRef.current=0; clkRef.current=570; dayRef.current=1;
+    balRef.current=START_BAL; pnlRef.current=0; clkRef.current=540; dayRef.current=1;
     agentsRef.current.forEach((a,i)=>{ a.pos={...STARTS[i]}; a.target=null; a.phase='idle';
       a.workT=0; a.idleT=rnd(0.4,2.6+i*0.4); a.pending=null; a.lastSt=null; a.flip=false; a.bubble=null; });
     setBalance(START_BAL); setPnl(0); setTasks(0); setNotifs([]); setHistory([]);
-    setEquity([START_BAL]); setBusySet({}); setClock(570); setDay(1);
+    setEquity([START_BAL]); setBusySet({}); setClock(540); setDay(1);
     setAgentView(AGENTS.map((a,i)=>({...a, pos:{...STARTS[i]}, flip:false, walking:false, bubble:null})));
   };
 
@@ -192,7 +192,7 @@ function App(){
               <div className="act">{statusLine}</div>
             </div>
           </div>
-          <div className="clock">Day {day} · {fmtClock(clock)}</div>
+          <div className="clock">Day {day} · {fmtClock(clock)} ICT</div>
           <div className="seg">
             {[1,2,4].map(s=> <button key={s} className={speed===s?'on':''} onClick={()=>setSpeed(s)}>{s}×</button>)}
           </div>
