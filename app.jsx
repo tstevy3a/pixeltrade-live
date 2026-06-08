@@ -40,6 +40,7 @@ function App(){
   const [cryptoPositions, setCryptoPositions] = useState([]);
   const [cryptoNotifs, setCryptoNotifs] = useState([]);
   const [cryptoHistory, setCryptoHistory] = useState([]);
+  const [pendingApproval, setPendingApproval] = useState(null);
 
   // ---- mutable sim refs ----
   const agentsRef = useRef(AGENTS.map((a,i)=>({
@@ -224,7 +225,16 @@ function App(){
         if(self.workT<=0){
           const p=self.pending; self.pending=null;
           if(p && p.oc){
-            if(p.oc.crypto_trade){ /* real trade — P&L tracked via Hyperliquid portfolio poll */ }
+            if(p.oc.crypto_trade){
+              // trigger approval popup instead of auto-executing
+              const t = p.oc.crypto_trade;
+              setPendingApproval({
+                symbol: t.symbol, side: t.side, size: t.size, price: t.price,
+                rating: p.oc.notif.text.match(/\[([^\]]+)\]/)?.[1] || '—',
+                reason: p.oc.notif.text,
+                agent: self.name,
+              });
+            }
             if(p.oc.taskInc) {/* tasks only on stocks side */}
             setCryptoNotifs(l=>[{id:++idc.current, ...p.oc.notif, time:fmtClock(), who:self.name, tint:self.tint},...l].slice(0,40));
             setCryptoHistory(l=>[{
@@ -357,6 +367,24 @@ function App(){
         cryptoBalance={cryptoBalance} cryptoPnl={cryptoPnl} cryptoPrices={cryptoPrices}
         cryptoAvailable={cryptoAvailable} cryptoPositions={cryptoPositions}
         cryptoAgents={cryptoAgentView} cryptoNotifs={cryptoNotifs} />
+
+      <TradeApproval pending={pendingApproval}
+        onReject={()=>setPendingApproval(null)}
+        onApprove={(t)=>{
+          setPendingApproval(null);
+          // POST to MCP server via local proxy
+          fetch('http://localhost:3456/trade', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({symbol:t.symbol, side:t.side, size:t.size}),
+          })
+          .then(r=>r.json())
+          .then(res=>setCryptoNotifs(l=>[{id:Date.now(), ic: res.ok?'✅':'❌',
+            text: res.ok ? `Executed ${t.side} ${t.size} ${t.symbol} @ $${t.price.toFixed(0)}` : `Order failed: ${res.error}`,
+            kind: res.ok ? 'up' : 'down', who: t.agent, tint:'#6fe08c', time:fmtClock()},...l].slice(0,40)))
+          .catch(e=>setCryptoNotifs(l=>[{id:Date.now(), ic:'❌',
+            text:`Order error: ${e.message}`, kind:'down', who:t.agent, tint:'#e06f6f', time:fmtClock()},...l].slice(0,40)));
+        }} />
     </div>
   );
 }

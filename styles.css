@@ -585,3 +585,21 @@ td.down{color:var(--red)}
   font-family: 'VT323', monospace;
   font-size: 14px;
 }
+
+/* === Trade Approval Popup === */
+.approval-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:999}
+.approval-box{background:#1a1a1a;border:2px solid #4f8a4e;padding:20px;min-width:280px;max-width:340px}
+.approval-header{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.approval-icon{font-size:20px}
+.approval-title{font-family:'VT323',monospace;font-size:22px;color:#f0f0f0;flex:1}
+.approval-badge{font-size:11px;padding:2px 7px;border-radius:3px;font-weight:700}
+.approval-badge.up{background:#1a3a1a;color:#6fe08c}
+.approval-badge.down{background:#3a1a1a;color:#e06f6f}
+.approval-row{display:flex;justify-content:space-between;font-size:12px;color:#aaa;padding:3px 0;border-bottom:1px solid #2a2a2a}
+.approval-row span:last-child{color:#f0f0f0;font-family:monospace}
+.approval-reason{font-size:11px;color:#888;margin-top:10px;line-height:1.4;font-style:italic}
+.approval-actions{display:flex;gap:10px;margin-top:16px}
+.approval-reject{flex:1;padding:8px;background:#3a1a1a;border:1px solid #e06f6f;color:#e06f6f;cursor:pointer;font-family:'VT323',monospace;font-size:16px}
+.approval-approve{flex:2;padding:8px;background:#1a3a1a;border:1px solid #6fe08c;color:#6fe08c;cursor:pointer;font-family:'VT323',monospace;font-size:16px}
+.approval-reject:hover{background:#5a2a2a}
+.approval-approve:hover{background:#2a5a2a}
