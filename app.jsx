@@ -46,9 +46,17 @@ function App(){
       body: JSON.stringify({symbol:t.symbol, side:t.side, size:t.size}),
     })
     .then(r=>r.json())
-    .then(res=>setCryptoNotifs(l=>[{id:Date.now(), ic:res.ok?'✅':'❌',
-      text:res.ok?`Executed ${t.side} ${t.size} ${t.symbol} @ $${(t.price||0).toFixed(0)}`:`Order failed: ${res.error}`,
-      kind:res.ok?'up':'down', who:t.agent, tint:'#6fe08c', time:fmtClock()},...l].slice(0,40)))
+    .then(res=>{
+      const ic = res.ok?'✅':'❌';
+      const text = res.ok?`Executed ${t.side} ${t.size} ${t.symbol} @ $${(t.price||0).toFixed(0)}`:`Order failed: ${res.error}`;
+      setCryptoNotifs(l=>[{id:Date.now(),ic,text,kind:res.ok?'up':'down',who:t.agent,tint:'#6fe08c',time:fmtClock()},...l].slice(0,40));
+      if(res.ok) setCryptoHistory(l=>[{
+        id:Date.now(), day:1, time:fmtClock(), who:t.agent, tint:'#6fe08c',
+        station:'Hyperliquid', icon:'🔴', action:text,
+        side:t.side, symbol:t.symbol, qty:t.size, price:(t.price||0).toFixed(0),
+        pnl:0, crypto:true, real:true,
+      },...l].slice(0,200));
+    })
     .catch(e=>setCryptoNotifs(l=>[{id:Date.now(),ic:'❌',
       text:`Order error: ${e.message}`,kind:'down',who:t.agent,tint:'#e06f6f',time:fmtClock()},...l].slice(0,40)));
   }, []);
@@ -247,23 +255,7 @@ function App(){
             }
             if(p.oc.taskInc) {/* tasks only on stocks side */}
             setCryptoNotifs(l=>[{id:++idc.current, ...p.oc.notif, time:fmtClock(), who:self.name, tint:self.tint},...l].slice(0,40));
-            setCryptoHistory(l=>[{
-              id: ++idc.current,
-              day: dayRef.current,
-              time: fmtClock(),
-              who: self.name,
-              tint: self.tint,
-              station: p.st.name,
-              icon: p.st.icon,
-              action: (p.oc.bubble||'').replace('…',''),
-              detail: p.oc.notif.text,
-              side: p.oc.crypto_trade && p.oc.crypto_trade.side,
-              symbol: p.oc.crypto_trade && p.oc.crypto_trade.symbol,
-              qty: p.oc.crypto_trade && p.oc.crypto_trade.qty,
-              price: p.oc.crypto_trade && p.oc.crypto_trade.price,
-              pnl: p.oc.pnlDelta || 0,
-              crypto: true
-            }, ...l].slice(0, 200));
+            // crypto history: real orders only (pushed by executeTrade)
           }
           self.phase='idle'; self.idleT=rnd(0.5,2.0); self.bubble=null; self.target=null;
         }
