@@ -78,7 +78,7 @@ function App(){
   // ---- simulation loop (runs once) ----
   useEffect(()=>{
     const nextId=()=>++idc.current;
-    const pushNotif=(n)=>{ const id=nextId(), time=fmtClock(clkRef.current);
+    const pushNotif=(n)=>{ const id=nextId(), time=fmtClock();
       setNotifs(l=>[{id,...n,time},...l].slice(0,40)); };
     const pushHist=(h)=>{ const id=nextId();
       setHistory(l=>[{id,...h},...l].slice(0,200)); };
@@ -224,16 +224,13 @@ function App(){
         if(self.workT<=0){
           const p=self.pending; self.pending=null;
           if(p && p.oc){
-            if(p.oc.crypto_trade){
-              // ไม่ override balance จาก Hyperliquid จริง — แค่ track P&L
-              cryptoPnlRef.current+=p.oc.pnlDelta; setCryptoPnl(Math.round(cryptoPnlRef.current));
-            }
+            if(p.oc.crypto_trade){ /* real trade — P&L tracked via Hyperliquid portfolio poll */ }
             if(p.oc.taskInc) {/* tasks only on stocks side */}
-            setCryptoNotifs(l=>[{id:++idc.current, ...p.oc.notif, time:fmtClock(clkRef.current), who:self.name, tint:self.tint},...l].slice(0,40));
+            setCryptoNotifs(l=>[{id:++idc.current, ...p.oc.notif, time:fmtClock(), who:self.name, tint:self.tint},...l].slice(0,40));
             setCryptoHistory(l=>[{
               id: ++idc.current,
               day: dayRef.current,
-              time: fmtClock(clkRef.current),
+              time: fmtClock(),
               who: self.name,
               tint: self.tint,
               station: p.st.name,
