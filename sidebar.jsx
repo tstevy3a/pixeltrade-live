@@ -86,10 +86,11 @@ function Sidebar({view,setView,balance,pnlToday,tasksDone,notifs,equity,statusLa
 
       <div className="side-card frame tight">
         <nav className="nav">
-          <NavBtn icon="🏠" label="Dashboard" id="dashboard" view={view} setView={setView} />
-          <NavBtn icon="🧠" label="Analysis"  id="analysis"  view={view} setView={setView} />
-          <NavBtn icon="📜" label="History"   id="history"   view={view} setView={setView} badge={0} />
-          <NavBtn icon="⚙️" label="Settings"  id="settings"  view={view} setView={setView} />
+          <NavBtn icon="🏠" label="Stocks"     id="dashboard" view={view} setView={setView} />
+          <NavBtn icon="🪙" label="Crypto"     id="crypto"    view={view} setView={setView} />
+          <NavBtn icon="🧠" label="Analysis"   id="analysis"  view={view} setView={setView} />
+          <NavBtn icon="📜" label="History"    id="history"   view={view} setView={setView} badge={0} />
+          <NavBtn icon="⚙️" label="Settings"   id="settings"  view={view} setView={setView} />
         </nav>
       </div>
 

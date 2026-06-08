@@ -10,6 +10,8 @@ const STARTS = [
 
 function App(){
   const [view,setView]       = useState('dashboard');
+  const [cryptoView,setCryptoView] = useState('dashboard');
+  const [cryptoMode,setCryptoMode] = useState('paper');  // 'paper' or 'live' (live requires explicit enable)
   const [balance,setBalance] = useState(START_BAL);
   const [pnlToday,setPnl]    = useState(0);
   const [tasks,setTasks]     = useState(0);
@@ -26,6 +28,14 @@ function App(){
   const [day,setDay]         = useState(1);
   const [speed,setSpeed]     = useState(1);
   const [settings,setSettings] = useState({autopilot:true, anim:true, tint:true, aggr:1, labels:true, names:true, tz:'ICT'});
+  const [cryptoPrices, setCryptoPrices] = useState({});
+  const [cryptoAgentView, setCryptoAgentView] = useState(
+    (window.CRYPTO_AGENTS || []).map((a,i)=>({...a, pos:{...CRYPTO_STARTS[i]}, flip:false, walking:false, bubble:null})));
+  const [cryptoBusySet, setCryptoBusySet] = useState({});
+  const [cryptoFloor, setCryptoFloor] = useState({working:0, walking:0});
+  const [cryptoBalance, setCryptoBalance] = useState(100000);
+  const [cryptoPnl, setCryptoPnl] = useState(0);
+  const [cryptoNotifs, setCryptoNotifs] = useState([]);
 
   // ---- mutable sim refs ----
   const agentsRef = useRef(AGENTS.map((a,i)=>({
@@ -33,10 +43,25 @@ function App(){
     pos:{...STARTS[i]}, target:null, phase:'idle',
     workT:0, idleT:rnd(0.4, 2.6+i*0.4), pending:null, lastSt:null, flip:false,
   })));
+  // ---- crypto team refs ----
+  const cryptoAgentsRef = useRef((window.CRYPTO_AGENTS || []).map((a,i)=>({
+    id:a.id, name:a.name, role:a.role, tint:a.tint, map:a.map, palette:a.palette,
+    pos:{...CRYPTO_STARTS[i]}, target:null, phase:'idle',
+    workT:0, idleT:rnd(0.4, 2.6+i*0.4), pending:null, lastSt:null, flip:false,
+  })));
+  const cryptoBalRef = useRef(100000);
+  const cryptoPnlRef = useRef(0);
   const clkRef=useRef(540), dayRef=useRef(1), balRef=useRef(START_BAL), pnlRef=useRef(0), idc=useRef(0);
   const sRef=useRef(settings), spRef=useRef(speed);
   useEffect(()=>{sRef.current=settings;},[settings]);
   useEffect(()=>{spRef.current=speed;},[speed]);
+
+  // ---- subscribe to Hyperliquid price updates ----
+  useEffect(()=>{
+    if (!window.Hyperliquid) return;
+    const off = window.Hyperliquid.onUpdate(snap => setCryptoPrices(snap.prices));
+    return () => { if (off) off(); };
+  }, []);
 
   // ---- simulation loop (runs once) ----
   useEffect(()=>{
@@ -143,10 +168,90 @@ function App(){
     };
 
     let raf, last=performance.now();
-    const tick=(now)=>{ let dt=(now-last)/1000; last=now; if(dt>0.1)dt=0.1; step(dt); raf=requestAnimationFrame(tick); };
+    const tick=(now)=>{ let dt=(now-last)/1000; last=now; if(dt>0.1)dt=0.1; step(dt); stepCrypto(dt); raf=requestAnimationFrame(tick); };
     raf=requestAnimationFrame(tick);
     return ()=>cancelAnimationFrame(raf);
   },[]);
+
+  // ---- crypto team simulation ----
+  const stepCrypto=(dts)=>{
+    const agents=cryptoAgentsRef.current;
+    const occ=new Set();
+    agents.forEach(o=>{ if(o.target) occ.add(o.target.id); });
+
+    const chooseCryptoNext=(self)=>{
+      const pool=[];
+      CRYPTO_STATIONS.forEach(st=>{
+        if(occ.has(st.id) && st.zone) return;
+        let wt=2;
+        if(st.kind==='crypto_trade') wt=4;
+        else if(['crypto_funding','crypto_hedge','crypto_backtest','crypto_chart','crypto_news','crypto_risk','crypto_spot'].includes(st.kind)) wt=3;
+        else wt=[3,2,1][sRef.current.aggr];
+        if(st.id===self.lastSt) wt=Math.max(1,wt-2);
+        for(let i=0;i<wt;i++) pool.push(st);
+      });
+      if(!pool.length) return null;
+      return pick(pool);
+    };
+
+    const stepCryptoAgent=(self)=>{
+      if(self.phase==='walking'){
+        const t=self.target; if(!t){ self.phase='idle'; self.idleT=rnd(0.4,1.4); return; }
+        const dx=t.ax-self.pos.x, dy=t.ay-self.pos.y, dist=Math.hypot(dx,dy);
+        if(dist<0.9){
+          self.pos={x:t.ax,y:t.ay};
+          const oc=window.generateCryptoOutcome(t); self.pending={st:t,oc};
+          self.workT=rnd(t.dur[0],t.dur[1]); self.phase='working'; self.bubble=oc.bubble;
+        } else {
+          const stp=Math.min(dist, 22*dts);
+          self.pos={x:self.pos.x+dx/dist*stp, y:self.pos.y+dy/dist*stp};
+          if(dx<-0.3) self.flip=true; else if(dx>0.3) self.flip=false;
+        }
+      } else if(self.phase==='working'){
+        self.workT-=dts;
+        if(self.workT<=0){
+          const p=self.pending; self.pending=null;
+          if(p && p.oc){
+            if(p.oc.crypto_trade){
+              cryptoBalRef.current+=p.oc.balanceDelta; setCryptoBalance(Math.round(cryptoBalRef.current));
+              cryptoPnlRef.current+=p.oc.pnlDelta; setCryptoPnl(Math.round(cryptoPnlRef.current));
+            }
+            if(p.oc.taskInc) {/* tasks only on stocks side */}
+            setCryptoNotifs(l=>[{id:++idc.current, ...p.oc.notif, time:fmtClock(clkRef.current), who:self.name, tint:self.tint},...l].slice(0,40));
+          }
+          self.phase='idle'; self.idleT=rnd(0.5,2.0); self.bubble=null; self.target=null;
+        }
+      } else {
+        self.idleT-=dts;
+        if(self.idleT<=0){
+          const nx=chooseCryptoNext(self);
+          if(nx){ self.target=nx; self.lastSt=nx.id; self.phase='walking'; }
+          else self.idleT=0.5;
+        }
+      }
+    };
+
+    agents.forEach(a=>stepCryptoAgent(a));
+
+    // derive render state
+    const busy={}; let nW=0, nWalk=0;
+    agents.forEach(a=>{
+      if(a.phase==='working' && a.target) busy[a.target.id]=a.id;
+      if(a.phase==='working') nW++; else if(a.phase==='walking') nWalk++;
+    });
+    setCryptoBusySet(prev=>{
+      const pk=Object.keys(prev), bk=Object.keys(busy);
+      if(pk.length===bk.length && bk.every(k=>prev[k]===busy[k])) return prev;
+      return busy;
+    });
+    setCryptoFloor(prev=> (prev.working===nW && prev.walking===nWalk)? prev : {working:nW, walking:nWalk});
+    setCryptoAgentView(agents.map(a=>({
+      id:a.id, name:a.name, role:a.role, tint:a.tint, map:a.map, palette:a.palette,
+      pos:{x:a.pos.x, y:a.pos.y}, flip:a.flip,
+      walking:(a.phase==='walking'), bubble:a.bubble,
+      phase:a.phase, atStation:a.target&&a.target.name,
+    })));
+  };
 
   // ---- handlers ----
   const onStationClick=(st)=>{
@@ -157,6 +262,13 @@ function App(){
     list.forEach(a=>{ const d=Math.hypot(a.pos.x-st.ax, a.pos.y-st.ay); if(d<bd){bd=d;best=a;} });
     best.target=st; best.lastSt=st.id; best.pending=null; best.phase='walking'; best.bubble=null;
     if(view!=='dashboard') setView('dashboard');
+  };
+  const onCryptoStationClick=(st)=>{
+    const cands=cryptoAgentsRef.current.filter(a=>a.phase!=='working');
+    const list=cands.length?cands:cryptoAgentsRef.current;
+    let best=list[0], bd=Infinity;
+    list.forEach(a=>{ const d=Math.hypot(a.pos.x-st.ax, a.pos.y-st.ay); if(d<bd){bd=d;best=a;} });
+    best.target=st; best.lastSt=st.id; best.pending=null; best.phase='walking'; best.bubble=null;
   };
   const onCreateAnalysis=(analysis)=>{
     setAnalyses(list=>[analysis,...list]);
@@ -201,11 +313,13 @@ function App(){
         {view==='dashboard' &&
           <Room agents={agentView} busySet={busySet} onStationClick={onStationClick}
             tint={settings.tint} showLabels={settings.labels} showNames={settings.names} />}
-        {view==='analysis' && <Analysis analyses={analyses} activeAnalysisId={activeAnalysisId}
+        {view==='crypto' && <CryptoRoom agents={cryptoAgentView} busySet={cryptoBusySet}
+            onStationClick={onCryptoStationClick} prices={cryptoPrices} cryptoMode={cryptoMode} />}
+        {view==='analysis'  && <Analysis analyses={analyses} activeAnalysisId={activeAnalysisId}
             setActiveAnalysisId={setActiveAnalysisId} onCreateAnalysis={onCreateAnalysis}
             agents={agentView} />}
-        {view==='history'  && <History history={history} />}
-        {view==='settings' && <Settings settings={settings} setSettings={setSettings}
+        {view==='history'   && <History history={history} />}
+        {view==='settings'  && <Settings settings={settings} setSettings={setSettings}
             onReset={onReset} speed={speed} setSpeed={setSpeed} />}
       </div>
 

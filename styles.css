@@ -510,3 +510,61 @@ td.down{color:var(--red)}
   margin-right: 3px;
   text-transform: capitalize;
 }
+
+/* ===== Crypto Team (added for Phase 2A) ===== */
+.crypto-mode-banner {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-family: 'Pixelify Sans', sans-serif;
+  z-index: 50;
+}
+.crypto-mode-banner .mode-pill {
+  background: #1a1410;
+  border: 2px solid #e7b53c;
+  color: #e7b53c;
+  padding: 2px 12px;
+  border-radius: 2px;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+.crypto-mode-banner .mode-hint {
+  color: #8a7a5a;
+  font-size: 12px;
+}
+.crypto-station .crypto-icon {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  font-size: 22px;
+  background: #1a1410;
+  border: 1.5px solid #4f8a4e;
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.crypto-station .crypto-price {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'VT323', monospace;
+  font-size: 11px;
+  color: #6fe08c;
+  background: #1a1410;
+  padding: 1px 4px;
+  border-radius: 1px;
+  white-space: nowrap;
+  margin-top: 2px;
+}
+.crypto-room {
+  background-color: #1a1410;
+}
