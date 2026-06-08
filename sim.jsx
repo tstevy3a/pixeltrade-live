@@ -37,7 +37,33 @@ function fmtClock(mins){
 
 // what happens when the agent finishes working a station
 function generateOutcome(st){
-  const T = pick(TICKERS);
+  // Prefer live tickers (from morning scan / intraday refresh) over the static TICKERS list.
+  // Falls back to TICKERS when cache is empty so the page still works without refresh.
+  const haveLive = typeof LiveData !== 'undefined' && LiveData.freshness && LiveData.getMeta().refreshed_at;
+  const liveTickers = haveLive ? Object.keys(LiveData.getAll()) : [];
+  const T = liveTickers.length ? pick(liveTickers) : pick(TICKERS);
+
+  // Reason tag from morning scan — e.g. " (top gainer)" — makes agents feel context-aware.
+  const reasonTag = (() => {
+    if (!haveLive) return '';
+    const reasons = (LiveData.get(T) || {}).picked_reasons || [];
+    const r = reasons[0];
+    if (!r) return '';
+    return ' (' + r.replace(/_/g, ' ') + ')';
+  })();
+
+  // Live indicator line — used by ANALYZE/SIGNALS kinds
+  const liveLine = (() => {
+    if (!haveLive) return null;
+    const d = LiveData.get(T);
+    if (!d || d.rsi == null) return null;
+    const arrow = d.change_pct >= 0 ? '🟢' : '🔴';
+    const sign  = d.change_pct >= 0 ? '+' : '';
+    return arrow + ' ' + T + ' @ $' + d.price.toFixed(2) +
+           ' (' + sign + d.change_pct.toFixed(2) + '%) · RSI ' + d.rsi.toFixed(0) +
+           ' · ' + d.recommendation;
+  })();
+
   switch(st.kind){
     case 'trade': {
       const side = Math.random()<0.55 ? 'BUY':'SELL';
@@ -54,14 +80,17 @@ function generateOutcome(st){
           kind: delta>=0?'up':'down' },
       };
     }
-    case 'analyze':  return out('📊', `Momentum building on ${T}`, st, 1, pick([`Scanning the tape`,`Charting ${T}`,`Hunting setups`,`Reading the order flow`]));
-    case 'research': return out('📚', `Filed a research note on ${T}`, st, 1, pick([`Reading ${T} filings`,`Studying earnings`,`Digging through 10-Ks`]));
+    case 'analyze':  return liveLine
+      ? { bubble: `Analyzing ${T}${reasonTag}…`, balanceDelta:0, pnlDelta:0, taskInc:1,
+          notif:{ ic:'📊', text: liveLine, kind: (LiveData.get(T).change_pct>=0?'up':'down') } }
+      : out('📊', `Momentum building on ${T}${reasonTag}`, st, 1, pick([`Scanning the tape`,`Charting ${T}`,`Hunting setups`,`Reading the order flow`]));
+    case 'research': return out('📚', `Filed a research note on ${T}${reasonTag}`, st, 1, pick([`Reading ${T} filings`,`Studying earnings`,`Digging through 10-Ks`]));
     case 'backtest': { const x=+(rnd(0.4,4.2)).toFixed(1);
-      return out('🧪', `Backtest beat SPY by ${x}%`, st, 1, pick([`Backtesting strategy`,`Reviewing the journal`,`Stress-testing risk`])); }
+      return out('🧪', `Backtest beat SPY by ${x}% on ${T}${reasonTag}`, st, 1, pick([`Backtesting strategy`,`Reviewing the journal`,`Stress-testing risk`])); }
     case 'plan':     return out('🧭', pick([`Risk capped at 2% / trade`,`Confirmed the day's plan`,`Set stop-losses`]), st, 1, pick([`Reviewing the plan`,`Checking risk limits`,`Marking key levels`]));
     case 'ops':      return out('🛰️', pick([`Feeds synced · 12ms latency`,`Order book rebalanced`,`Risk engine all green`]), st, 1, pick([`Syncing data feeds`,`Rebalancing the book`,`Tuning the risk engine`]));
     case 'signals':  { const dir=Math.random()<.5?'LONG':'SHORT';
-      return out('🌱', `New ${dir} signal on ${T}`, st, 1, pick([`Cultivating signals`,`Watering the model`,`Pruning weak signals`])); }
+      return out('🌱', `New ${dir} signal on ${T}${reasonTag}`, st, 1, pick([`Cultivating signals`,`Watering the model`,`Pruning weak signals`])); }
     case 'review':   { const x=irnd(58,74);
       return out('🏆', `Win rate holding at ${x}%`, st, 1, pick([`Tallying the win wall`,`Grading yesterday's trades`,`Updating the scorecard`])); }
     case 'rest':     return out('☕', pick([`Focus recharged`,`Logged the morning recap`,`Patience — waiting for a setup`]), st, 0, pick([`Brewing coffee`,`Catching a breather`,`Letting a trade breathe`]));

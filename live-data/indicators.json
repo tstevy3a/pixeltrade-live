@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "refreshed_at": null,
+  "source": "tradingview-mcp",
+  "scan_meta": {
+    "scan_date": null,
+    "scan_type": null,
+    "scanners_used": []
+  },
+  "tickers": {}
+}

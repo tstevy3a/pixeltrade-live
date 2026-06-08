@@ -1,5 +1,32 @@
 /* ===== Sidebar (taskbar): brand, nav, live stats, notifications ===== */
 
+function LiveBadge(){
+  const [meta, setMeta] = React.useState(window.LiveData ? window.LiveData.getMeta() : { refreshed_at: null });
+  const [_, setTick] = React.useState(0);
+
+  React.useEffect(()=>{
+    if (!window.LiveData) return;
+    // re-render every 30s to update age display
+    const i = setInterval(()=> setTick(t=>t+1), 30000);
+    return ()=> clearInterval(i);
+  }, []);
+
+  if (!window.LiveData) return <span className="live-badge stale">🔴 offline</span>;
+  if (!meta.refreshed_at) {
+    return (
+      <span className="live-badge stale" title="No data yet — ask Hermes: refresh pixeltrade indicators">
+        🔴 No data
+      </span>
+    );
+  }
+  const ageMin = (Date.now() - Date.parse(meta.refreshed_at)) / 60000;
+  if (!isFinite(ageMin)) return <span className="live-badge stale">🔴 stale</span>;
+  const cls = ageMin < 5 ? 'fresh' : ageMin < 30 ? 'aging' : 'stale';
+  const ic  = ageMin < 5 ? '🟢' : ageMin < 30 ? '🟡' : '🔴';
+  const scanType = (meta.scan_meta && meta.scan_meta.scan_type) ? ' · ' + meta.scan_meta.scan_type : '';
+  return <span className={'live-badge '+cls} title={'Last refresh: ' + meta.refreshed_at}>{ic} {Math.round(ageMin)}m ago{scanType}</span>;
+}
+
 function Spark({data}){
   const ref = React.useRef(null);
   React.useEffect(()=>{
@@ -52,6 +79,7 @@ function Sidebar({view,setView,balance,pnlToday,tasksDone,notifs,equity,statusLa
               <span className="status-dot" style={{background: running?'var(--up)':'var(--gold)'}}></span>
               {running? `${agents?agents.length:0} agents on the floor` : 'floor paused'}
             </div>
+            <div style={{marginTop:6}}><LiveBadge /></div>
           </div>
         </div>
       </div>
@@ -117,4 +145,4 @@ function Sidebar({view,setView,balance,pnlToday,tasksDone,notifs,equity,statusLa
   );
 }
 
-Object.assign(window, { Sidebar, Spark });
+Object.assign(window, { Sidebar, Spark, LiveBadge });

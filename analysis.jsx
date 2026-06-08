@@ -2,6 +2,87 @@
 
 const {ANALYSIS_SCENARIOS, createWorkflowAnalysis, normalizeTicker} = AnalysisModel;
 
+function LivePanel(){
+  const [data, setData] = React.useState(window.LiveData ? window.LiveData.getAll() : {});
+  const [meta, setMeta] = React.useState(window.LiveData ? window.LiveData.getMeta() : { refreshed_at: null, scan_meta: {} });
+  const [_, setTick] = React.useState(0);
+
+  React.useEffect(()=>{
+    if (!window.LiveData) return;
+    const off = window.LiveData.onUpdate((c)=>{
+      setData(c.tickers || {});
+      setMeta({
+        refreshed_at: c.refreshed_at,
+        scan_meta: c.scan_meta || {},
+        version: c.version,
+        source: c.source,
+      });
+    });
+    // re-render every 30s for age display
+    const i = setInterval(()=> setTick(t=>t+1), 30000);
+    return ()=> { off && off(); clearInterval(i); };
+  }, []);
+
+  const tickers = Object.entries(data);
+  const scanType = (meta.scan_meta && meta.scan_meta.scan_type) || '—';
+  const scanners = (meta.scan_meta && meta.scan_meta.scanners_used) || [];
+  const ageText = meta.refreshed_at
+    ? Math.round((Date.now() - Date.parse(meta.refreshed_at)) / 60000) + 'm ago'
+    : 'never';
+
+  return (
+    <div className="live-panel">
+      <h3>📡 Live Indicators</h3>
+      <div className="meta">
+        {tickers.length === 0
+          ? <>No data yet — ask Hermes: <code>refresh pixeltrade indicators</code></>
+          : <>Last refresh: <b>{ageText}</b> · scan type: <b>{scanType}</b>{scanners.length>0 && <> · from {scanners.length} scanners</>}</>
+        }
+      </div>
+      {tickers.length > 0 && (
+        <table>
+          <thead>
+            <tr>
+              <th>Ticker</th>
+              <th>Price</th>
+              <th>Δ%</th>
+              <th>RSI</th>
+              <th>MACD</th>
+              <th>BB</th>
+              <th>Rec</th>
+              <th>Reasons</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tickers.map(([t, d]) => (
+              <tr key={t}>
+                <td><b>{t}</b></td>
+                <td>${d.price != null ? d.price.toFixed(2) : '—'}</td>
+                <td className={d.change_pct >= 0 ? 'up' : 'down'}>
+                  {d.change_pct != null ? (d.change_pct >= 0 ? '+' : '') + d.change_pct.toFixed(2) + '%' : '—'}
+                </td>
+                <td className={d.rsi < 30 ? 'oversold' : d.rsi > 70 ? 'overbought' : ''}>
+                  {d.rsi != null ? d.rsi.toFixed(0) : '—'}
+                </td>
+                <td className={d.macd_signal === 'bullish' ? 'up' : d.macd_signal === 'bearish' ? 'down' : ''}>
+                  {d.macd_signal || '—'}
+                </td>
+                <td>{d.bb_rating != null ? (d.bb_rating > 0 ? '+' : '') + d.bb_rating : '—'}</td>
+                <td className={'rec-' + (d.recommendation || 'neutral').toLowerCase().replace('_','-')}>
+                  {d.recommendation || '—'}
+                </td>
+                <td>
+                  {(d.picked_reasons || []).map(r => <span className="reason-tag" key={r}>{r.replace(/_/g, ' ')}</span>)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
 function ThesisBadge({decision}){
   return <span className={'thesis-badge '+decision.toLowerCase()}>{decision}</span>;
 }
@@ -148,6 +229,8 @@ function Analysis({analyses, activeAnalysisId, setActiveAnalysisId, onCreateAnal
         <div className="analysis-count mono">{analyses.length} session runs</div>
       </div>
 
+      <LivePanel />
+
       <div className="analysis-layout">
         <aside className="analysis-left">
           <AnalysisForm onCreateAnalysis={onCreateAnalysis} />
@@ -174,4 +257,4 @@ function Analysis({analyses, activeAnalysisId, setActiveAnalysisId, onCreateAnal
   );
 }
 
-Object.assign(window, { Analysis, ThesisBadge });
+Object.assign(window, { Analysis, ThesisBadge, LivePanel });

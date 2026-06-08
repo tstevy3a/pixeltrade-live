@@ -426,3 +426,87 @@ td.down{color:var(--red)}
   .agent-report-grid,.thesis-columns{grid-template-columns:1fr}
   .thesis-stats{grid-template-columns:1fr 1fr}
 }
+
+/* ===== Live data components (added for live data integration) ===== */
+.live-badge {
+  display: inline-block;
+  font-family: 'VT323', monospace;
+  font-size: 14px;
+  padding: 2px 8px;
+  border: 1.5px solid;
+  border-radius: 2px;
+  background: rgba(0,0,0,0.35);
+  letter-spacing: 0.5px;
+  user-select: none;
+}
+.live-badge.fresh { color: #6fe08c; border-color: #6fe08c; }
+.live-badge.aging { color: #e7b53c; border-color: #e7b53c; }
+.live-badge.stale { color: #e06f6f; border-color: #e06f6f; }
+
+.live-panel {
+  background: #1a1410;
+  border: 2px solid #4f8a4e;
+  border-radius: 4px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  font-family: 'VT323', monospace;
+  color: #e7d9b8;
+}
+.live-panel h3 {
+  font-family: 'Pixelify Sans', sans-serif;
+  margin: 0 0 6px 0;
+  color: #f0c094;
+  font-size: 18px;
+}
+.live-panel .meta {
+  font-size: 14px;
+  color: #8a7a5a;
+  margin: 0 0 10px 0;
+}
+.live-panel .empty {
+  color: #8a7a5a;
+  font-size: 15px;
+}
+.live-panel .empty code {
+  background: #2a1a10;
+  padding: 2px 6px;
+  border-radius: 2px;
+  color: #e7b53c;
+  display: inline-block;
+  margin-top: 6px;
+}
+.live-panel table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+.live-panel th, .live-panel td {
+  padding: 5px 8px;
+  text-align: left;
+  border-bottom: 1px solid #2a1a10;
+}
+.live-panel th {
+  color: #8a7a5a;
+  font-weight: normal;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.live-panel tr:hover td { background: rgba(111, 224, 140, 0.04); }
+.live-panel .up         { color: #6fe08c; }
+.live-panel .down       { color: #e06f6f; }
+.live-panel .oversold   { color: #6fe08c; font-weight: bold; }
+.live-panel .overbought { color: #e06f6f; font-weight: bold; }
+.live-panel .rec-strong-buy, .live-panel .rec-buy { color: #6fe08c; }
+.live-panel .rec-strong-sell, .live-panel .rec-sell { color: #e06f6f; }
+.live-panel .rec-neutral { color: #e7b53c; }
+.live-panel .reason-tag {
+  display: inline-block;
+  font-size: 11px;
+  padding: 1px 4px;
+  background: #2a1a10;
+  color: #8a7a5a;
+  border-radius: 2px;
+  margin-right: 3px;
+  text-transform: capitalize;
+}
