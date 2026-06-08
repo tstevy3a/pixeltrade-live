@@ -1,0 +1,38 @@
+# Secrets — NEVER commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.secret
+secrets/
+credentials/
+
+# Local data (live trading state, paper positions)
+live-data/local/
+paper-trades/
+*.db
+*.sqlite
+*.sqlite3
+wallets/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# Node / build artifacts
+node_modules/
+dist/
+build/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Logs
+*.log
+logs/
