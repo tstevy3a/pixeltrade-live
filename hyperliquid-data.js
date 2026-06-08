@@ -191,59 +191,95 @@
     return () => subscribers.delete(cb);
   }
 
-  // === Hybrid decision logic (per-agent strategies) ===
-
+  // === Hybrid decision logic (uses TradingKnowledge) ===
+  // Falls back to inline rules if TradingKnowledge not loaded
   function decideAction(agent, symbol, ind) {
     if (!ind) return {action: 'skip', reason: 'no data'};
-    const {price, rsi: r, macd: m, bollinger: bb, atr: a, change_pct} = ind;
-    if (r == null || !m || !bb) return {action: 'skip', reason: 'insufficient data'};
+    const TK = window.TradingKnowledge;
 
-    let action = 'skip', confidence = 0, reason = '';
-    const trend = m.trend;
-
-    if (agent === 'nova') {  // Momentum
-      if (r > 60 && trend === 'bullish' && bb.rating > 0) {
-        action = 'buy'; confidence = 0.85;
-        reason = `Momentum: RSI ${r.toFixed(0)} + MACD bullish + BB positive`;
-      } else if (r < 40 && trend === 'bearish' && bb.rating < 0) {
-        action = 'sell'; confidence = 0.80;
-        reason = `Momentum short: RSI ${r.toFixed(0)} + MACD bearish + BB negative`;
-      } else if (r > 55 && trend === 'bullish') {
-        action = 'buy'; confidence = 0.62;
-        reason = `Mild bullish: RSI ${r.toFixed(0)}, MACD bullish`;
-      } else if (r < 45 && trend === 'bearish') {
-        action = 'sell'; confidence = 0.58;
-        reason = `Mild bearish: RSI ${r.toFixed(0)}, MACD bearish`;
-      }
-    } else if (agent === 'cipher') {  // Mean reversion
-      if (r < 30) { action = 'buy'; confidence = 0.78; reason = `Oversold bounce: RSI ${r.toFixed(0)}`; }
-      else if (r > 70) { action = 'sell'; confidence = 0.75; reason = `Overbought fade: RSI ${r.toFixed(0)}`; }
-      else if (r < 35) { action = 'buy'; confidence = 0.55; reason = `Near oversold: RSI ${r.toFixed(0)}`; }
-      else if (r > 65) { action = 'sell'; confidence = 0.52; reason = `Near overbought: RSI ${r.toFixed(0)}`; }
-    } else if (agent === 'volt') {  // Scalper (BB squeeze breakout)
-      if (bb.bandwidth < 0.025 && trend === 'bullish' && price > bb.upper) {
-        action = 'buy'; confidence = 0.72; reason = `BB squeeze breakout up: bw ${bb.bandwidth.toFixed(3)}`;
-      } else if (bb.bandwidth < 0.025 && trend === 'bearish' && price < bb.lower) {
-        action = 'sell'; confidence = 0.70; reason = `BB squeeze breakout down`;
-      }
-    } else if (agent === 'quasar') {  // Swing (EMA cross + HTF trend)
-      if (r > 50 && r < 70 && trend === 'bullish' && change_pct > 1) {
-        action = 'buy'; confidence = 0.65; reason = `Swing long: trend up, RSI ${r.toFixed(0)}`;
-      } else if (r < 50 && r > 30 && trend === 'bearish' && change_pct < -1) {
-        action = 'sell'; confidence = 0.62; reason = `Swing short: trend down, RSI ${r.toFixed(0)}`;
-      }
-    } else if (agent === 'atlas') {  // Hedge (delta-neutral, funding)
-      if (r > 65) { action = 'sell'; confidence = 0.50; reason = `Funding hedge short: RSI ${r.toFixed(0)}`; }
-      else if (r < 35) { action = 'buy'; confidence = 0.50; reason = `Funding hedge long: RSI ${r.toFixed(0)}`; }
-    } else if (agent === 'onyx') {  // Spot bull (buy dips only)
-      if (r < 40 && change_pct < -2) {
-        action = 'buy'; confidence = 0.75; reason = `Buy dip: RSI ${r.toFixed(0)}, down ${change_pct.toFixed(1)}%`;
-      } else if (r < 50 && trend === 'bullish' && change_pct < -1) {
-        action = 'buy'; confidence = 0.55; reason = `Mild dip buy`;
-      }
+    // Build bull + bear cases using knowledge base
+    let bull, bear;
+    if (TK) {
+      bull = TK.buildBullCase(ind, 'crypto');
+      bear = TK.buildBearCase(ind, 'crypto');
+    } else {
+      // Fallback: minimal case scoring
+      bull = {score: 0, reasons: [], side: 'bull'};
+      bear = {score: 0, reasons: [], side: 'bear'};
     }
 
-    return {action, confidence, reason, price, rsi: r, atr: a, bb_bandwidth: bb.bandwidth, change_pct};
+    let resolved;
+    if (TK) {
+      resolved = TK.resolveWithConflictGuard(bull, bear);
+    }
+
+    // Per-agent style modifies the base rating
+    let finalRating = resolved ? resolved.rating : 'HOLD';
+    let confidence = resolved ? Math.min(0.95, 0.5 + Math.abs(resolved.diff) * 0.3) : 0.5;
+    let reasons = [
+      ...(bull.reasons.length ? ['🟢 ' + bull.reasons.join('; ')] : []),
+      ...(bear.reasons.length ? ['🔴 ' + bear.reasons.join('; ')] : [])
+    ];
+
+    // Per-agent style modifiers
+    if (agent === 'nova') {  // Momentum
+      // Nova goes with strong signals (BUY/SELL with high confidence)
+      if (finalRating === 'OVERWEIGHT') finalRating = 'BUY';
+      if (finalRating === 'UNDERWEIGHT') finalRating = 'SELL';
+      // Nova trades only high-momentum setups
+      if (confidence < 0.65) finalRating = 'HOLD';
+    } else if (agent === 'cipher') {  // Mean reversion
+      // Cipher does the OPPOSITE of momentum in extreme zones
+      if (ind.rsi != null && ind.rsi < 30 && finalRating === 'BUY') confidence = Math.min(0.95, confidence + 0.1);
+      if (ind.rsi != null && ind.rsi > 70 && finalRating === 'SELL') confidence = Math.min(0.95, confidence + 0.1);
+      // Cipher only acts on strong extremes
+      if (ind.rsi != null && ind.rsi > 35 && ind.rsi < 65) finalRating = 'HOLD';
+    } else if (agent === 'volt') {  // Scalper
+      // Volt wants squeeze breakouts only
+      if (ind.bollinger && ind.bollinger.bandwidth > 0.04) finalRating = 'HOLD';
+      // Volt uses tight take-profit
+      confidence = Math.min(0.95, confidence + 0.05);
+    } else if (agent === 'quasar') {  // Swing
+      // Quasar needs broader timeframe signal — ignore tiny moves
+      if (Math.abs(ind.change_pct || 0) < 1.0) finalRating = 'HOLD';
+    } else if (agent === 'atlas') {  // Hedge
+      // Atlas is delta-neutral — only act on extremes
+      if (ind.rsi != null && ind.rsi > 40 && ind.rsi < 60) finalRating = 'HOLD';
+      // Atlas is conservative confidence
+      confidence = Math.max(0.5, confidence - 0.1);
+    } else if (agent === 'onyx') {  // Spot bull
+      // Onyx buys dips only — never shorts
+      if (finalRating === 'SELL' || finalRating === 'UNDERWEIGHT') finalRating = 'HOLD';
+      // Onyx needs oversold signal
+      if (ind.rsi != null && ind.rsi > 50) finalRating = 'HOLD';
+    }
+
+    // Map rating to action
+    let action = 'skip';
+    if (finalRating === 'BUY') action = 'buy';
+    else if (finalRating === 'OVERWEIGHT') action = 'buy';
+    else if (finalRating === 'SELL') action = 'sell';
+    else if (finalRating === 'UNDERWEIGHT') action = 'sell';
+    else action = 'hold';
+
+    // Format reason
+    const reasonText = reasons.length
+      ? `${finalRating} (${(confidence*100).toFixed(0)}% conf) — ${reasons.join(' | ')}`
+      : `${finalRating} (${(confidence*100).toFixed(0)}% conf) — no clear signal`;
+
+    return {
+      action,
+      rating: finalRating,
+      confidence,
+      reason: reasonText,
+      bull_score: bull.score,
+      bear_score: bear.score,
+      price: ind.price,
+      rsi: ind.rsi,
+      atr: ind.atr,
+      bb_bandwidth: ind.bollinger && ind.bollinger.bandwidth,
+      change_pct: ind.change_pct,
+    };
   }
 
   window.Hyperliquid = {
