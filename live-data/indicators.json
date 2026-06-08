@@ -1,10 +1,10 @@
 {
   "version": 2,
-  "refreshed_at": "2026-06-08T00:31:47.364260+00:00",
+  "refreshed_at": "2026-06-08T04:14:36.549496+00:00",
   "source": "tradingview-mcp-scanners",
   "scan_meta": {
     "scan_date": "2026-06-08",
-    "scan_type": "pre_market",
+    "scan_type": "intraday",
     "scanners_used": [
       "top_gainers",
       "volume_breakout_scanner",
@@ -25,7 +25,7 @@
       "picked_reasons": [
         "top_gainer"
       ],
-      "fetched_at": "2026-06-08T00:31:47.364260+00:00"
+      "fetched_at": "2026-06-08T04:14:36.549496+00:00"
     },
     "NOTV": {
       "price": 0.1661,
@@ -39,7 +39,7 @@
       "picked_reasons": [
         "top_gainer"
       ],
-      "fetched_at": "2026-06-08T00:31:47.364260+00:00"
+      "fetched_at": "2026-06-08T04:14:36.549496+00:00"
     },
     "FGMCU": {
       "price": 17.09,
@@ -53,7 +53,7 @@
       "picked_reasons": [
         "top_gainer"
       ],
-      "fetched_at": "2026-06-08T00:31:47.364260+00:00"
+      "fetched_at": "2026-06-08T04:14:36.549496+00:00"
     },
     "SUGP": {
       "price": 0.9956,
@@ -67,7 +67,7 @@
       "picked_reasons": [
         "top_gainer"
       ],
-      "fetched_at": "2026-06-08T00:31:47.364260+00:00"
+      "fetched_at": "2026-06-08T04:14:36.549496+00:00"
     },
     "SNBR": {
       "price": 0.4776,
@@ -81,7 +81,7 @@
       "picked_reasons": [
         "top_gainer"
       ],
-      "fetched_at": "2026-06-08T00:31:47.364260+00:00"
+      "fetched_at": "2026-06-08T04:14:36.549496+00:00"
     },
     "BNAI": {
       "price": 22.17,
@@ -95,7 +95,7 @@
       "picked_reasons": [
         "top_gainer"
       ],
-      "fetched_at": "2026-06-08T00:31:47.364260+00:00"
+      "fetched_at": "2026-06-08T04:14:36.549496+00:00"
     },
     "YXT": {
       "price": 0.543,
@@ -109,7 +109,7 @@
       "picked_reasons": [
         "top_gainer"
       ],
-      "fetched_at": "2026-06-08T00:31:47.364260+00:00"
+      "fetched_at": "2026-06-08T04:14:36.549496+00:00"
     },
     "PTLE": {
       "price": 5.9,
@@ -123,7 +123,7 @@
       "picked_reasons": [
         "top_gainer"
       ],
-      "fetched_at": "2026-06-08T00:31:47.364260+00:00"
+      "fetched_at": "2026-06-08T04:14:36.549496+00:00"
     },
     "BMGL": {
       "price": 0.5445,
@@ -137,7 +137,7 @@
       "picked_reasons": [
         "top_gainer"
       ],
-      "fetched_at": "2026-06-08T00:31:47.364260+00:00"
+      "fetched_at": "2026-06-08T04:14:36.549496+00:00"
     },
     "VACHU": {
       "price": 16.8,
@@ -151,7 +151,7 @@
       "picked_reasons": [
         "top_gainer"
       ],
-      "fetched_at": "2026-06-08T00:31:47.364260+00:00"
+      "fetched_at": "2026-06-08T04:14:36.549496+00:00"
     },
     "BAYAU": {
       "price": 14.59,
@@ -166,7 +166,7 @@
         "volume_breakout",
         "smart_volume"
       ],
-      "fetched_at": "2026-06-08T00:31:47.364260+00:00"
+      "fetched_at": "2026-06-08T04:14:36.549496+00:00"
     },
     "AIXI": {
       "price": 9.1107,
@@ -180,7 +180,7 @@
       "picked_reasons": [
         "smart_volume"
       ],
-      "fetched_at": "2026-06-08T00:31:47.364260+00:00"
+      "fetched_at": "2026-06-08T04:14:36.549496+00:00"
     }
   }
 }

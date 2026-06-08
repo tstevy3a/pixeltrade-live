@@ -94,6 +94,25 @@ Three cron jobs handle the full day:
 
 ~26 MCP calls per trading day × ~4K tokens = ~104K tokens ≈ $0.30/day ≈ $9/month (market-hours only). 24/7 would be ~$36/month.
 
+## Deployment
+
+The page is a static site — any static host works. Currently it has a local dev server.
+
+**Source of indicators.json:**
+- `live-data.js` tries multiple sources in order: same-origin → jsDelivr CDN (`cdn.jsdelivr.net/gh/tstevy3a/pixeltrade-live@main/live-data/indicators.json`) → fallback
+- The CDN path works for **GitHub Pages**, Vercel, Cloudflare Pages, etc.
+- Local dev (localhost) uses the same-origin path which is faster.
+
+**To push to GitHub Pages:**
+1. Create repo `pixeltrade-live` on github.com (public, no README)
+2. Get a Personal Access Token with `repo` scope
+3. `git remote add origin https://github.com/tstevy3a/pixeltrade-live.git`
+4. `git push -u origin main`
+5. Settings → Pages → enable from `main` branch, `/` (root)
+6. Visit `https://tstevy3a.github.io/pixeltrade-live/`
+
+**Important:** When you push updates to `indicators.json` on GitHub, jsDelivr will pick up the new version within minutes. No rebuild needed.
+
 ## Troubleshooting
 
 **LiveBadge shows 🔴 No data**
