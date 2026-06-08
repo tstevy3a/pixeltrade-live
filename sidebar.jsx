@@ -97,6 +97,7 @@ function Sidebar({view,setView,balance,pnlToday,tasksDone,notifs,equity,statusLa
         </nav>
       </div>
 
+      {(view === 'dashboard' || view === 'analysis') && (
       <div className="side-card frame">
         <div className="label">📈 Stocks Stats</div>
         <div className="stats">
@@ -107,8 +108,9 @@ function Sidebar({view,setView,balance,pnlToday,tasksDone,notifs,equity,statusLa
         </div>
         <Spark data={equity} />
       </div>
+      )}
 
-      {(view === 'crypto' || view === 'dashboard' || view === 'analysis') && (
+      {(view === 'crypto' || view === 'analysis') && (
       <div className="side-card frame">
         <div className="label">🪙 Crypto Stats <span className="mode-tag">{cryptoMode}</span></div>
         <div className="stats">
