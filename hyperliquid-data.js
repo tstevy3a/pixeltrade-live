@@ -252,36 +252,25 @@
     ];
 
     // Per-agent style modifiers
-    if (agent === 'nova') {  // Momentum
-      // Nova goes with strong signals (BUY/SELL with high confidence)
+    if (agent === 'nova') {
       if (finalRating === 'OVERWEIGHT') finalRating = 'BUY';
       if (finalRating === 'UNDERWEIGHT') finalRating = 'SELL';
-      // Nova trades only high-momentum setups
-      if (confidence < 0.65) finalRating = 'HOLD';
-    } else if (agent === 'cipher') {  // Mean reversion
-      // Cipher does the OPPOSITE of momentum in extreme zones
-      if (ind.rsi != null && ind.rsi < 30 && finalRating === 'BUY') confidence = Math.min(0.95, confidence + 0.1);
-      if (ind.rsi != null && ind.rsi > 70 && finalRating === 'SELL') confidence = Math.min(0.95, confidence + 0.1);
-      // Cipher only acts on strong extremes
-      if (ind.rsi != null && ind.rsi > 35 && ind.rsi < 65) finalRating = 'HOLD';
-    } else if (agent === 'volt') {  // Scalper
-      // Volt wants squeeze breakouts only
-      if (ind.bollinger && ind.bollinger.bandwidth > 0.04) finalRating = 'HOLD';
-      // Volt uses tight take-profit
+      if (confidence < 0.50) finalRating = 'HOLD';  // was 0.65
+    } else if (agent === 'cipher') {
+      if (ind.rsi != null && ind.rsi < 40 && finalRating === 'BUY') confidence = Math.min(0.95, confidence + 0.1);
+      if (ind.rsi != null && ind.rsi > 60 && finalRating === 'SELL') confidence = Math.min(0.95, confidence + 0.1);
+      if (ind.rsi != null && ind.rsi > 42 && ind.rsi < 58) finalRating = 'HOLD';  // was 35-65
+    } else if (agent === 'volt') {
+      if (ind.bollinger && ind.bollinger.bandwidth > 0.08) finalRating = 'HOLD';  // was 0.04
       confidence = Math.min(0.95, confidence + 0.05);
-    } else if (agent === 'quasar') {  // Swing
-      // Quasar needs broader timeframe signal — ignore tiny moves
-      if (Math.abs(ind.change_pct || 0) < 1.0) finalRating = 'HOLD';
-    } else if (agent === 'atlas') {  // Hedge
-      // Atlas is delta-neutral — only act on extremes
-      if (ind.rsi != null && ind.rsi > 40 && ind.rsi < 60) finalRating = 'HOLD';
-      // Atlas is conservative confidence
+    } else if (agent === 'quasar') {
+      if (Math.abs(ind.change_pct || 0) < 0.3) finalRating = 'HOLD';  // was 1.0
+    } else if (agent === 'atlas') {
+      if (ind.rsi != null && ind.rsi > 45 && ind.rsi < 55) finalRating = 'HOLD';  // was 40-60
       confidence = Math.max(0.5, confidence - 0.1);
-    } else if (agent === 'onyx') {  // Spot bull
-      // Onyx buys dips only — never shorts
+    } else if (agent === 'onyx') {
       if (finalRating === 'SELL' || finalRating === 'UNDERWEIGHT') finalRating = 'HOLD';
-      // Onyx needs oversold signal
-      if (ind.rsi != null && ind.rsi > 50) finalRating = 'HOLD';
+      if (ind.rsi != null && ind.rsi > 65) finalRating = 'HOLD';  // was 50
     }
 
     // Map rating to action
