@@ -71,6 +71,9 @@ function Sidebar({view,setView,balance,pnlToday,tasksDone,notifs,equity,statusLa
   const listRef = React.useRef(null);
   const currentAgents = view === 'crypto' ? cryptoAgents : agents;
   const currentNotifs = view === 'crypto' ? cryptoNotifs : notifs;
+  const portfolio = gatewayStatus?.portfolio?.status === 'AVAILABLE' ? gatewayStatus.portfolio : null;
+  const portfolioPositions = portfolio?.positions || [];
+  const spotBalances = portfolio?.spotBalances || [];
 
   return (
     <aside className="sidebar">
@@ -119,6 +122,15 @@ function Sidebar({view,setView,balance,pnlToday,tasksDone,notifs,equity,statusLa
             <span className="v">{gatewayStatus?.online ? (gatewayStatus.engineBusy ? 'BUSY' : 'READY') : 'OFFLINE'}</span></div>
           <div className="stat"><span className="k">Risk State</span>
             <span className="v">{gatewayStatus?.riskStateReady ? 'READY' : 'NOT SET'}</span></div>
+          <div className="stat"><span className="k">Account</span>
+            <span className="v mono">{portfolio ? `${portfolio.accountAddress.slice(0,6)}…${portfolio.accountAddress.slice(-4)}` : '—'}</span></div>
+          <div className="stat"><span className="k">Equity</span>
+            <span className="v">{portfolio ? fmtMoney(portfolio.accountValue) : '—'}</span></div>
+          <div className="stat"><span className="k">Withdrawable</span>
+            <span className="v">{portfolio ? fmtMoney(portfolio.withdrawable) : '—'}</span></div>
+          <div className="stat"><span className="k">Unrealized P&amp;L</span>
+            <span className={'v '+((portfolio?.totalUnrealizedPnl??0)>=0?'up':'down')}>
+              {portfolio ? fmtSigned(portfolio.totalUnrealizedPnl) : '—'}</span></div>
           <div className="stat"><span className="k">P&amp;L Today</span>
             <span className={'v '+((gatewayStatus?.dailyPnl??0)>=0?'up':'down')}>
               {gatewayStatus?.dailyPnl == null ? '—' : fmtSigned(gatewayStatus.dailyPnl)}</span></div>
@@ -129,13 +141,25 @@ function Sidebar({view,setView,balance,pnlToday,tasksDone,notifs,equity,statusLa
           <div className="stat"><span className="k">ETH</span>
             <span className="v mono">{cryptoPrices.ETH ? '$'+cryptoPrices.ETH.price.toLocaleString('en-US',{maximumFractionDigits:0}) : '—'}</span></div>
         </div>
-        {(cryptoPositions||[]).length > 0 && (
+        {portfolioPositions.length > 0 && (
           <div className="positions">
             <div className="label" style={{fontSize:'9px',marginTop:'6px'}}>OPEN POSITIONS</div>
-            {cryptoPositions.map(p => (
+            {portfolioPositions.map(p => (
               <div key={p.coin} className="stat" style={{fontSize:'10px'}}>
-                <span className="k">{p.coin} {p.size > 0 ? '▲' : '▼'}</span>
-                <span className={'v '+(p.uPnl>=0?'up':'down')}>{p.uPnl>=0?'+':''}{p.uPnl.toFixed(2)}</span>
+                <span className="k">{p.coin} {p.side === 'LONG' ? '▲' : '▼'} {p.leverage}×</span>
+                <span className={'v '+(p.unrealizedPnl>=0?'up':'down')}>
+                  {p.unrealizedPnl>=0?'+':''}{p.unrealizedPnl.toFixed(2)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {spotBalances.length > 0 && (
+          <div className="positions">
+            <div className="label" style={{fontSize:'9px',marginTop:'6px'}}>SPOT BALANCES</div>
+            {spotBalances.slice(0,5).map(p => (
+              <div key={p.coin} className="stat" style={{fontSize:'10px'}}>
+                <span className="k">{p.coin}</span>
+                <span className="v">{p.total.toLocaleString('en-US',{maximumFractionDigits:6})}</span>
               </div>
             ))}
           </div>

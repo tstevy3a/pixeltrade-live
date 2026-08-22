@@ -10,6 +10,27 @@ import { engineBusy, runOnce } from "./service.js";
 import { symbolSchema } from "./types.js";
 
 const config = loadConfig();
+let portfolioCache: { key: string; expiresAt: number; value: unknown } | null = null;
+
+async function currentPortfolio() {
+  const accountAddress = (config.HYPERLIQUID_ACCOUNT_ADDRESS ?? config.HYPERLIQUID_VIEW_ADDRESS) as `0x${string}`;
+  const isTestnet = config.PIXELTRADE_MODE === "TESTNET";
+  const key = `${isTestnet}:${accountAddress}`;
+  if (portfolioCache?.key === key && portfolioCache.expiresAt > Date.now()) return portfolioCache.value;
+  try {
+    const market = new HyperliquidMarketData(isTestnet);
+    const value = await market.portfolio(accountAddress);
+    portfolioCache = { key, expiresAt: Date.now() + 4_000, value };
+    return value;
+  } catch {
+    return {
+      status: "UNAVAILABLE",
+      observedAt: new Date().toISOString(),
+      positions: [],
+      spotBalances: [],
+    };
+  }
+}
 
 function cors(response: ServerResponse, request: IncomingMessage) {
   if (request.headers.origin === config.PIXELTRADE_ALLOWED_ORIGIN) {
@@ -73,6 +94,7 @@ const server = createServer(async (request, response) => {
         riskStateReady: Boolean(state),
         dailyPnl: state?.realizedPnl ?? null,
         tradesToday: state?.trades ?? null,
+        portfolio: await currentPortfolio(),
         models: cryptoCommitteeModels,
         lastEvent: await readLastJournalSummary(),
       });
@@ -82,12 +104,15 @@ const server = createServer(async (request, response) => {
         return json(response, 403, { error: "UNTRUSTED_ORIGIN" });
       }
       if (!authorized(request)) return json(response, 401, { error: "UNAUTHORIZED" });
-      if (!config.HYPERLIQUID_ACCOUNT_ADDRESS) return json(response, 409, { error: "ACCOUNT_ADDRESS_REQUIRED" });
+      const selectedAddress = config.HYPERLIQUID_ACCOUNT_ADDRESS ?? (
+        config.PIXELTRADE_MODE === "SHADOW" ? config.HYPERLIQUID_VIEW_ADDRESS : undefined
+      );
+      if (!selectedAddress) return json(response, 409, { error: "ACCOUNT_ADDRESS_REQUIRED" });
       if (url.pathname === "/api/admin/baseline") {
         const market = new HyperliquidMarketData(config.PIXELTRADE_MODE === "TESTNET");
         const snapshot = await market.snapshot(
           "BTC",
-          config.HYPERLIQUID_ACCOUNT_ADDRESS as `0x${string}`,
+          selectedAddress as `0x${string}`,
           null,
         );
         const state = await establishRiskBaseline(snapshot.equity);

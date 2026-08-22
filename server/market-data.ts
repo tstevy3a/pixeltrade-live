@@ -110,6 +110,52 @@ export class HyperliquidMarketData {
     this.info = new InfoClient({ transport: new HttpTransport({ isTestnet }) });
   }
 
+  async portfolio(accountAddress: `0x${string}`, now = new Date()) {
+    const [account, spot, mids] = await Promise.all([
+      this.info.clearinghouseState({ user: accountAddress }),
+      this.info.spotClearinghouseState({ user: accountAddress }),
+      this.info.allMids(),
+    ]);
+    const positions = account.assetPositions
+      .filter((row) => number(row.position.szi) !== 0)
+      .map(({ position }) => ({
+        coin: position.coin,
+        size: number(position.szi),
+        side: number(position.szi) > 0 ? "LONG" as const : "SHORT" as const,
+        entryPrice: number(position.entryPx),
+        markPrice: mids[position.coin] ? number(mids[position.coin]) : null,
+        positionValue: number(position.positionValue),
+        unrealizedPnl: number(position.unrealizedPnl),
+        returnOnEquity: number(position.returnOnEquity),
+        liquidationPrice: position.liquidationPx ? number(position.liquidationPx) : null,
+        marginUsed: number(position.marginUsed),
+        leverage: position.leverage.value,
+        leverageType: position.leverage.type,
+        fundingSinceOpen: number(position.cumFunding.sinceOpen),
+      }));
+    const spotBalances = spot.balances
+      .filter((balance) => number(balance.total) !== 0 || number(balance.hold) !== 0)
+      .map((balance) => ({
+        coin: balance.coin,
+        total: number(balance.total),
+        hold: number(balance.hold),
+        available: number(balance.total) - number(balance.hold),
+        entryNotional: number(balance.entryNtl),
+      }));
+    return {
+      status: "AVAILABLE" as const,
+      observedAt: now.toISOString(),
+      accountAddress,
+      accountValue: number(account.marginSummary.accountValue),
+      withdrawable: number(account.withdrawable),
+      totalNotionalPosition: number(account.marginSummary.totalNtlPos),
+      totalMarginUsed: number(account.marginSummary.totalMarginUsed),
+      totalUnrealizedPnl: positions.reduce((sum, position) => sum + position.unrealizedPnl, 0),
+      positions,
+      spotBalances,
+    };
+  }
+
   async reconcileRiskState(
     accountAddress: `0x${string}`,
     state: DurableRiskState | null,

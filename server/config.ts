@@ -9,6 +9,8 @@ const envSchema = z.object({
   PIXELTRADE_PORT: z.coerce.number().int().min(1024).max(65535).default(3456),
   AUTO_RUN_ENABLED: z.enum(["true", "false"]).default("false").transform((value) => value === "true"),
   LIVE_TRADING_ACK: z.string().optional(),
+  HYPERLIQUID_VIEW_ADDRESS: z.string().regex(/^0x[a-fA-F0-9]{40}$/)
+    .default("0xF7e687e0e4A250e4CDa493fD2C0606610eFe4073"),
   HYPERLIQUID_ACCOUNT_ADDRESS: z.string().regex(/^0x[a-fA-F0-9]{40}$/).optional(),
   HYPERLIQUID_API_PRIVATE_KEY: z.string().regex(/^0x[a-fA-F0-9]{64}$/).optional(),
   DASHSCOPE_API_KEY: z.string().min(1).optional(),

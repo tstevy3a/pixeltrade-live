@@ -38,6 +38,7 @@ function App(){
   const [cryptoPnl, setCryptoPnl] = useState(0);
   const [cryptoAvailable, setCryptoAvailable] = useState(0);
   const [cryptoPositions, setCryptoPositions] = useState([]);
+  const [publicPortfolio, setPublicPortfolio] = useState(null);
   const [cryptoNotifs, setCryptoNotifs] = useState([]);
   const [cryptoHistory, setCryptoHistory] = useState([]);
   const [gatewayStatus, setGatewayStatus] = useState(
@@ -66,12 +67,7 @@ function App(){
     if (!window.Hyperliquid) return;
     const off = window.Hyperliquid.onUpdate(snap => {
       setCryptoPrices(snap.prices);
-      const p = window.Hyperliquid.getPortfolio();
-      if (p && p.balance > 0) {
-        setCryptoBalance(p.balance);
-        setCryptoAvailable(p.available);
-        setCryptoPositions(p.positions || []);
-      }
+      if (snap.portfolio?.status === 'AVAILABLE') setPublicPortfolio(snap.portfolio);
     });
     return () => { if (off) off(); };
   }, []);
@@ -311,6 +307,9 @@ function App(){
   const statusLine = settings.autopilot
     ? `${floor.working} working · ${floor.walking} walking`
     : 'Floor paused — agents idle';
+  const displayGatewayStatus = gatewayStatus?.portfolio?.status === 'AVAILABLE'
+    ? gatewayStatus
+    : {...gatewayStatus, portfolio: publicPortfolio};
 
   return (
     <div className={'app'+(settings.anim?'':' no-anim')}>
@@ -335,7 +334,7 @@ function App(){
             tint={settings.tint} showLabels={settings.labels} showNames={settings.names} />}
         {view==='crypto' && <CryptoRoom agents={cryptoAgentView} busySet={cryptoBusySet}
             onStationClick={onCryptoStationClick} prices={cryptoPrices} cryptoMode={cryptoMode}
-            gatewayStatus={gatewayStatus} />}
+            gatewayStatus={displayGatewayStatus} />}
         {view==='analysis'  && <Analysis analyses={analyses} activeAnalysisId={activeAnalysisId}
             setActiveAnalysisId={setActiveAnalysisId} onCreateAnalysis={onCreateAnalysis}
             agents={agentView} />}
@@ -349,7 +348,7 @@ function App(){
         agents={agentView}
         cryptoBalance={cryptoBalance} cryptoPnl={cryptoPnl} cryptoPrices={cryptoPrices}
         cryptoAvailable={cryptoAvailable} cryptoPositions={cryptoPositions}
-        cryptoAgents={cryptoAgentView} cryptoNotifs={cryptoNotifs} gatewayStatus={gatewayStatus} />
+        cryptoAgents={cryptoAgentView} cryptoNotifs={cryptoNotifs} gatewayStatus={displayGatewayStatus} />
 
 
     </div>

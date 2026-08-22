@@ -12,8 +12,11 @@ let activeRun = false;
 
 export async function runOnce(config: AppConfig, symbol: CryptoSymbol) {
   if (activeRun) throw new Error("ENGINE_BUSY");
-  if (!config.HYPERLIQUID_ACCOUNT_ADDRESS) throw new Error("ACCOUNT_ADDRESS_REQUIRED");
-  const accountAddress = config.HYPERLIQUID_ACCOUNT_ADDRESS as `0x${string}`;
+  const selectedAddress = config.HYPERLIQUID_ACCOUNT_ADDRESS ?? (
+    config.PIXELTRADE_MODE === "SHADOW" ? config.HYPERLIQUID_VIEW_ADDRESS : undefined
+  );
+  if (!selectedAddress) throw new Error("ACCOUNT_ADDRESS_REQUIRED");
+  const accountAddress = selectedAddress as `0x${string}`;
   activeRun = true;
   const now = new Date();
   const isTestnet = config.PIXELTRADE_MODE === "TESTNET";

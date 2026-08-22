@@ -1,16 +1,19 @@
 /* ===== Hyperliquid browser-side fetcher =====
    Mainnet: https://api.hyperliquid.xyz (public read-only, no auth needed)
-   Portfolio and all write operations belong to the private gateway. */
+   The configured view account is public blockchain/exchange data. All write
+   operations and credentials still belong exclusively to the private gateway. */
 (function(){
   const API_URL = 'https://api.hyperliquid.xyz';
+  const VIEW_ACCOUNT = '0xF7e687e0e4A250e4CDa493fD2C0606610eFe4073';
   const POLL_MS         = 5000;
+  const POLL_PORTFOLIO_MS = 10000;
   const POLL_CANDLE_MS  = 30000;
   const DEFAULT_SYMBOLS = ['BTC', 'ETH', 'SOL'];
 
   let priceCache = {};
   let candleCache = {};
   let indicatorCache = {};
-  let portfolioCache = {balance: 0, available: 0, positions: [], ts: 0};
+  let portfolioCache = null;
   const subscribers = new Set();
 
   async function postJson(body) {
@@ -43,6 +46,64 @@
       // also store all if user wants to see
       Object.assign(priceCache, ...Object.entries(data).filter(([k]) => DEFAULT_SYMBOLS.includes(k)).map(([k, v]) => ({[k]: {price: parseFloat(v), ts: now}})));
       emitUpdate();
+    }
+  }
+
+  function requiredNumber(value) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) throw new Error('invalid portfolio number');
+    return parsed;
+  }
+
+  async function pollPortfolio() {
+    const [account, spot] = await Promise.all([
+      postJson({type: 'clearinghouseState', user: VIEW_ACCOUNT}),
+      postJson({type: 'spotClearinghouseState', user: VIEW_ACCOUNT}),
+    ]);
+    if (!account || !spot || !account.marginSummary || !Array.isArray(account.assetPositions)) return;
+    try {
+      const positions = account.assetPositions
+        .map(row => row.position || {})
+        .filter(position => requiredNumber(position.szi) !== 0)
+        .map(position => ({
+          coin: String(position.coin),
+          size: requiredNumber(position.szi),
+          side: requiredNumber(position.szi) > 0 ? 'LONG' : 'SHORT',
+          entryPrice: requiredNumber(position.entryPx),
+          markPrice: priceCache[position.coin]?.price ?? null,
+          positionValue: requiredNumber(position.positionValue),
+          unrealizedPnl: requiredNumber(position.unrealizedPnl),
+          returnOnEquity: requiredNumber(position.returnOnEquity),
+          liquidationPrice: position.liquidationPx ? requiredNumber(position.liquidationPx) : null,
+          marginUsed: requiredNumber(position.marginUsed),
+          leverage: requiredNumber(position.leverage?.value),
+          leverageType: String(position.leverage?.type || 'unknown'),
+          fundingSinceOpen: requiredNumber(position.cumFunding?.sinceOpen || 0),
+        }));
+      const spotBalances = (Array.isArray(spot.balances) ? spot.balances : [])
+        .filter(balance => requiredNumber(balance.total) !== 0 || requiredNumber(balance.hold) !== 0)
+        .map(balance => ({
+          coin: String(balance.coin),
+          total: requiredNumber(balance.total),
+          hold: requiredNumber(balance.hold),
+          available: requiredNumber(balance.total) - requiredNumber(balance.hold),
+          entryNotional: requiredNumber(balance.entryNtl),
+        }));
+      portfolioCache = {
+        status: 'AVAILABLE',
+        observedAt: new Date().toISOString(),
+        accountAddress: VIEW_ACCOUNT,
+        accountValue: requiredNumber(account.marginSummary.accountValue),
+        withdrawable: requiredNumber(account.withdrawable),
+        totalNotionalPosition: requiredNumber(account.marginSummary.totalNtlPos),
+        totalMarginUsed: requiredNumber(account.marginSummary.totalMarginUsed),
+        totalUnrealizedPnl: positions.reduce((sum, position) => sum + position.unrealizedPnl, 0),
+        positions,
+        spotBalances,
+      };
+      emitUpdate();
+    } catch (error) {
+      console.warn('[Hyperliquid] rejected malformed portfolio response:', error.message);
     }
   }
 
@@ -161,7 +222,7 @@
   }
 
   function emitUpdate() {
-    const snapshot = {prices: {...priceCache}, indicators: {...indicatorCache}};
+    const snapshot = {prices: {...priceCache}, indicators: {...indicatorCache}, portfolio: portfolioCache};
     subscribers.forEach(cb => { try { cb(snapshot); } catch(e){console.warn(e);} });
   }
 
@@ -185,8 +246,10 @@
     if (window.__hlTimer) return;
     pollMids();
     pollAllIndicators();
+    pollPortfolio();
     window.__hlTimer       = setInterval(pollMids, POLL_MS);
     window.__hlIndTimer    = setInterval(pollAllIndicators, POLL_CANDLE_MS);
+    window.__hlPortfolioTimer = setInterval(pollPortfolio, POLL_PORTFOLIO_MS);
   }
 
   function getPrices() {
@@ -212,7 +275,7 @@
 
   function onUpdate(cb) {
     subscribers.add(cb);
-    cb({prices: getPrices(), indicators: {...indicatorCache}});
+    cb({prices: getPrices(), indicators: {...indicatorCache}, portfolio: portfolioCache});
     return () => subscribers.delete(cb);
   }
 
@@ -301,8 +364,8 @@
   window.Hyperliquid = {
     start, getPrices, getPrice, getIndicators, getIndicatorsSync, getIndicatorsAll,
     onUpdate, decideAction, getPortfolio,
-    mode: 'public-market-data-only',
-    wallet: null,
+    mode: 'public-read-only-mainnet',
+    wallet: VIEW_ACCOUNT,
   };
 
   if (document.readyState === 'loading') {

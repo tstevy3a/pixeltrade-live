@@ -29,6 +29,8 @@ append-only journal + daily circuit breakers
 
 AI ไม่มีสิทธิ์กำหนดขนาด position, leverage หรือข้าม stop-loss เอง การซื้อเกิดได้เมื่อทั้ง 4 โมเดลอ้างอิงหลักฐานที่ส่งให้ครบ, เห็นตรงกัน, confidence อย่างน้อย 70 และผ่าน risk engine อีกชั้น หากโมเดลหรือข้อมูลขาด ระบบเลือก `HOLD`
 
+หน้า Crypto ดึง equity, withdrawable balance, perpetual positions, unrealized P&L และ spot balances จริงจาก Hyperliquid ผ่าน gateway แบบอ่านอย่างเดียว ค่าเริ่มต้นใช้ public view account เดิมของโปรเจกต์ ส่วน execution account ต้องตั้งแยกต่างหากเสมอ
+
 ### โหมดการทำงาน
 
 - `SHADOW` — วิเคราะห์และบันทึกผล แต่ไม่สร้างคำสั่งซื้อขาย

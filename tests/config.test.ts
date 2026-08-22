@@ -7,6 +7,7 @@ describe("gateway configuration", () => {
     const config = loadConfig({});
     expect(config.PIXELTRADE_MODE).toBe("SHADOW");
     expect(config.AUTO_RUN_ENABLED).toBe(false);
+    expect(config.HYPERLIQUID_VIEW_ADDRESS).toBe("0xF7e687e0e4A250e4CDa493fD2C0606610eFe4073");
   });
 
   it("requires two explicit live-money barriers", () => {
