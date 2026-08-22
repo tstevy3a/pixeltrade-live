@@ -33,7 +33,7 @@ function CryptoStation({st, busyAgent, onClick, showLabels, price}) {
   );
 }
 
-function CryptoRoom({agents, busySet, onStationClick, prices, cryptoMode, gatewayStatus}) {
+function CryptoRoom({agents, busySet, onStationClick, prices, gatewayStatus, showNames=true}) {
   const mode = gatewayStatus && gatewayStatus.online ? gatewayStatus.mode : 'OFFLINE';
   const last = gatewayStatus && gatewayStatus.lastEvent;
   return (
@@ -57,7 +57,7 @@ function CryptoRoom({agents, busySet, onStationClick, prices, cryptoMode, gatewa
           );
         })}
         {agents.map(a => (
-          <CryptoAgent key={a.id} a={a} scale={3} showName={true} z={100 + Math.round(a.pos.y)} />
+          <CryptoAgent key={a.id} a={a} scale={3} showName={showNames} z={100 + Math.round(a.pos.y)} />
         ))}
       </div>
       <div className="room-hint mono">Visualization only · work-zone clicks never place orders</div>

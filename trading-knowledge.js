@@ -9,12 +9,10 @@
    - Risk profiles (aggressive/conservative/neutral)
    - Sentiment analysis rules (cross-source divergence)
    - Position sizing + stop loss guidance
-   - Multi-asset support (stocks vs crypto)
+   - Crypto market context
 
    Used by:
-   - hyperliquid-data.js: crypto team decideAction()
-   - live-data.js: stocks team indicator-aware outcomes
-   - Future: Analysis view + LLM fallback prompts */
+   - hyperliquid-data.js: crypto team decideAction() */
 
 (function(){
 
@@ -285,29 +283,17 @@
     };
   }
 
-  // === Multi-asset context ===
-  function getAssetContext(symbol, assetType) {
-    if (assetType === 'crypto') {
-      return {
-        type: 'crypto',
-        label: 'asset',
-        fundamentals_label: 'Asset fundamentals report (may be unavailable for crypto)',
-        has_24h_volume: true,
-        has_funding: true,
-        has_open_interest: true,
-        has_insider_data: false,
-        has_balance_sheet: false,
-      };
-    }
+  // === Crypto context ===
+  function getAssetContext() {
     return {
-      type: 'stock',
-      label: 'company',
-      fundamentals_label: 'Company fundamentals report',
+      type: 'crypto',
+      label: 'asset',
+      fundamentals_label: 'Asset fundamentals report (may be unavailable for crypto)',
       has_24h_volume: true,
-      has_funding: false,
-      has_open_interest: false,
-      has_insider_data: true,
-      has_balance_sheet: true,
+      has_funding: true,
+      has_open_interest: true,
+      has_insider_data: false,
+      has_balance_sheet: false,
     };
   }
 
@@ -318,7 +304,7 @@
     'Funding rate > 0.1% often precedes short squeezes (longs crowded) or trend reversals.',
     'Crypto fundamentals data is sparse — lean more on technicals and sentiment than fundamentals.',
     'ATR-based stops adapt to volatility — fixed percentage stops get run over in volatile markets.',
-    'When news says bearish but retail is bullish (StockTwits), the market often goes with retail first, then reverses.',
+    'When news and positioning disagree, wait for price confirmation instead of predicting which signal wins.',
     'Engagement-weighted Reddit (upvotes + comments) is a stronger signal than post count.',
     'Stop-loss in perpetuals: 2-3x ATR is a starting point; tighten if you have low conviction.',
     'Position sizing matters more than entry timing. 1% risk per trade is the survival baseline.',

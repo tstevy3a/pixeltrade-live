@@ -9,7 +9,7 @@
     "dev:gateway": "tsx watch server/http.ts",
     "start:gateway": "tsx server/http.ts",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/analysis-model.test.js && vitest run --exclude tests/analysis-model.test.js",
+    "test": "vitest run",
     "check": "npm run typecheck && npm test"
   },
   "dependencies": {

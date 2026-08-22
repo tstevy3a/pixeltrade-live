@@ -58,25 +58,24 @@ npm run dev:gateway
 - ใช้ API wallet แยกที่จำกัดเงิน และถอนเงินไม่ได้
 - เครื่อง live นี้ติดตั้ง process supervisor และ protection watchdog ทุก 30 วินาทีแล้ว โดย watchdog ตรวจว่า BTC/ETH long ทุก position มี reduce-only stop และ take-profit; หาก protection ขาด ระบบจะยกเลิก protection ที่ค้างและส่ง emergency reduce-only close ส่วนการแจ้งเตือนใช้หน้า dashboard และ journal log
 
-## หน้าเว็บเดิม
+## หน้าเว็บ Crypto
 
-ส่วนห้อง pixel-art ด้านล่างยังคงไว้เป็น visualization เท่านั้น การเดินของตัวละครไม่สามารถส่งคำสั่งซื้อขายได้
+ห้อง pixel-art เป็น visualization ของทีม Crypto เท่านั้น การเดินของตัวละครและการคลิกสถานีไม่สามารถส่งคำสั่งซื้อขายได้ ตัว execution gateway ทำงานแยกต่างหากและอยู่ภายใต้ risk engine
 
 ![PixelTrade Dashboard](assets/room.png)
 
 ## โปรเจคนี้คืออะไร?
 
-PixelTrade แสดงภาพสำนักงานเทรดเสมือนจริง ที่มี AI agents เดินไปมาระหว่างสถานีทำงาน นั่งวิเคราะห์ และส่งคำสั่งซื้อขาย — ทั้งหมดเรนเดอร์ในสไตล์ pixel-art ย้อนยุค ดูพอร์ตโตหรือร่วงได้แบบเรียลไทม์
+PixelTrade แสดงทีม AI สำหรับ BTC/ETH พร้อมสถานะ gateway, พอร์ต Hyperliquid, ราคาตลาด และระบบป้องกันความเสี่ยงในสไตล์ pixel-art
 
 ## ฟีเจอร์หลัก
 
-- **ซิมูเลชันสด** — AI agents 6 ตัว เดินระหว่าง 11 สถานี (Trading Desk, Analytics Bay, Signal Garden, R&D Pod ฯลฯ)
-- **ติดตามพอร์ตแบบเรียลไทม์** — ยอดเงิน, P&L, และกราฟ equity อัปเดตทุก tick
+- **Crypto team visualization** — AI agents 6 ตัวเดินระหว่างสถานี BTC, ETH, committee, risk และ execution
+- **ติดตามพอร์ตจริงแบบอ่านอย่างเดียว** — equity, withdrawable, positions และ P&L จาก Hyperliquid
 - **คลิกสถานีได้** — คลิกสถานีไหนก็ได้เพื่อส่ง agent ที่ใกล้ที่สุดไปทำงานทันที
-- **ปรับความเร็ว** — รันที่ 1×, 2×, หรือ 4×
-- **หน้า Analysis** — แผง วิเคราะห์ตลาดในแอป
-- **ประวัติการเทรด** — บันทึกทุกการซื้อขาย พร้อม ticker, จำนวน, ราคา และ P&L
-- **Settings** — เปิด/ปิด autopilot, animation, สี, ป้ายชื่อ agent และระดับความก้าวร้าว
+- **แยก display จาก execution** — Pause, speed และ reset บนหน้าเว็บไม่เปลี่ยนสถานะการเทรดจริง
+- **ประวัติการเทรด** — สงวนไว้สำหรับ verified crypto execution events เท่านั้น
+- **Settings** — ปรับเฉพาะ animation และการแสดงผล
 
 ## วิธีรัน
 
@@ -85,7 +84,7 @@ PixelTrade แสดงภาพสำนักงานเทรดเสมื
 ```bash
 # Clone โปรเจค
 git clone <your-repo-url>
-cd ai-agents
+cd pixeltrade-live
 
 # เปิด index.html ในเบราว์เซอร์โดยตรง
 # หรือใช้ local dev server
@@ -98,49 +97,48 @@ npx serve .
 
 ```
 ├── index.html          # จุดเริ่มต้น — โหลดทุกไฟล์ผ่าน Babel standalone
-├── app.jsx             # Root component: state, simulation loop, การเชื่อมต่อทั้งหมด
-├── sim.jsx             # สถานี, ticker, การสร้าง outcome, logic ของ agent
-├── room.jsx            # เรนเดอร์ห้อง pixel-art พร้อม sprite ของ agent
+├── app.jsx             # Root component และ crypto visualization loop
+├── crypto-team.jsx     # ทีมและสถานี Crypto
+├── crypto-room.jsx     # ห้อง pixel-art ของทีม Crypto
 ├── pixel-sprite.jsx    # ตัวช่วยเรนเดอร์ pixel sprite
-├── sidebar.jsx         # แผงขวา: ยอดเงิน, P&L, กราฟ equity, การแจ้งเตือน
+├── sidebar.jsx         # แผงขวา: gateway, พอร์ต, ราคา และทีม Crypto
 ├── views.jsx           # หน้า History และ Settings
-├── analysis.jsx        # หน้าวิเคราะห์ตลาด
-├── analysis-model.js   # โมเดลข้อมูลการวิเคราะห์
+├── hyperliquid-data.js # ข้อมูลตลาดและพอร์ตแบบอ่านอย่างเดียว
+├── gateway-client.js   # สถานะ private gateway
+├── ui-utils.js         # ตัวช่วยการแสดงผล
 ├── styles.css          # สไตล์ทั้งหมด (ธีมมืด สไตล์ pixel)
 └── assets/
     └── room.png        # ภาพพื้นหลังห้อง
 ```
 
-## ระบบซิมูเลชันทำงานอย่างไร?
+## Visualization ทำงานอย่างไร?
 
 แต่ละ agent มี **phase** ดังนี้: `idle → walking → working → idle`
 
-- **idle** — agent รอสักครู่แล้วเลือกสถานีตาม **ระดับความก้าวร้าว** (ยิ่งสูง ยิ่งเทรดมาก พักน้อยลง)
+- **idle** — agent รอสักครู่แล้วเลือกสถานีตามระดับ display activity
 - **walking** — agent เดินไปยังสถานีด้วยความเร็วคงที่
-- **working** — agent ใช้เวลาทำงานที่สถานีและสร้าง outcome (เทรด, วิเคราะห์, เขียน note ฯลฯ)
-
-outcome ส่งผลต่อยอดเงินในพอร์ตรวม การเทรดมีโอกาสชนะประมาณ 66% พร้อม P&L แบบสุ่ม
+- **working** — agent แสดงกิจกรรมที่สถานี โดยไม่ส่งคำสั่งและไม่แก้ยอดเงินจริง
 
 ## เทคโนโลยีที่ใช้
 
 - **React 18** (โหลดผ่าน CDN ไม่ต้องมี bundler)
 - **Babel Standalone** (แปลง JSX ในเบราว์เซอร์)
 - CSS ล้วน สไตล์ pixel พร้อมฟอนต์ `Pixelify Sans` และ `VT323`
-- ไม่มี backend — ทุกอย่างรันฝั่ง client
+- Private TypeScript gateway สำหรับ execution และ risk controls
 
 ## การควบคุม
 
 | ปุ่ม | การทำงาน |
 |---|---|
-| ⏸ Pause / ▶ Resume | เปิด/ปิด autopilot |
-| 1× / 2× / 4× | ความเร็วของซิมูเลชัน |
+| Pause display / Resume display | เปิด/ปิดการเคลื่อนไหวบนหน้าจอเท่านั้น |
+| 1× / 2× / 4× | ความเร็ว animation เท่านั้น |
 | คลิกสถานี | ส่ง agent ที่ว่างใกล้ที่สุดไปทำงาน |
-| Settings → Reset | รีเซ็ตซิมูเลชันกลับเป็น Day 1 |
+| Settings → Reset display | ล้างกิจกรรมบนหน้าจอ ไม่กระทบ live engine |
 
 ## การทดสอบ
 
 ```bash
-node --experimental-vm-modules tests/analysis-model.test.js
+npm run check
 ```
 
 ## License

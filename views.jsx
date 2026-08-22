@@ -1,39 +1,26 @@
-/* ===== Secondary views: History & Settings ===== */
+/* ===== Crypto activity and display settings ===== */
 
 function History({history}){
-  const [tab, setTab] = React.useState('all');
-  const filtered = tab==='all' ? history
-    : tab==='crypto' ? history.filter(h=>h.crypto)
-    : history.filter(h=>!h.crypto);
   return (
     <div className="view-pane frame">
-      <h2>📜 Trade & Activity History</h2>
-      <div className="seg" style={{marginBottom:12}}>
-        {['all','stocks','crypto'].map(t=>(
-          <button key={t} className={tab===t?'on':''} onClick={()=>setTab(t)}
-            style={{textTransform:'capitalize'}}>{t==='all'?'All':t==='crypto'?'🪙 Crypto':'📈 Stocks'}</button>
-        ))}
-      </div>
+      <h2>Trade &amp; Activity History</h2>
+      <div className="desc">Only verified crypto execution events belong here.</div>
       <div className="table">
         <table>
           <thead><tr>
             <th>Time</th><th>Agent</th><th>Station</th><th>Action</th><th>Detail</th><th style={{textAlign:'right'}}>P&amp;L</th>
           </tr></thead>
           <tbody>
-            {filtered.length===0 && <tr><td colSpan="6" className="muted">No activity yet.</td></tr>}
-            {filtered.map(h=>(
-              <tr key={h.id}>
-                <td className="muted">D{h.day} · {h.time}</td>
-                <td><span className="who" style={{color:h.tint}}>{h.who||'—'}</span></td>
-                <td>{h.icon} {h.station}</td>
-                <td>{h.action}</td>
-                <td>{h.side
-                    ? <span className={'pill '+(h.side==='BUY'?'buy':'sell')}>{h.side} {h.ticker||h.symbol} ×{h.qty} @ ${h.price}</span>
-                    : <span className="muted">{h.detail||'—'}</span>}</td>
-                <td style={{textAlign:'right'}} className={h.pnl>0?'up':h.pnl<0?'down':''}>
-                  {h.pnl? fmtSigned(h.pnl) : '—'}</td>
-              </tr>
-            ))}
+            {history.length===0 && <tr><td colSpan="6" className="muted">No verified execution history loaded.</td></tr>}
+            {history.map(item=><tr key={item.id}>
+              <td className="muted">{item.time||'—'}</td>
+              <td><span className="who" style={{color:item.tint}}>{item.who||'—'}</span></td>
+              <td>{item.station||'—'}</td>
+              <td>{item.action||'—'}</td>
+              <td><span className="muted">{item.detail||'—'}</span></td>
+              <td style={{textAlign:'right'}} className={item.pnl>0?'up':item.pnl<0?'down':''}>
+                {item.pnl?fmtSigned(item.pnl):'—'}</td>
+            </tr>)}
           </tbody>
         </table>
       </div>
@@ -41,57 +28,50 @@ function History({history}){
   );
 }
 
-function Toggle({on,onClick}){ return <div className={'toggle'+(on?' on':'')} onClick={onClick}><div className="knob"></div></div>; }
+function Toggle({on,onClick}){
+  return <button type="button" className={'toggle'+(on?' on':'')} aria-pressed={on}
+    aria-label={on?'Enabled':'Disabled'} onClick={onClick}><span className="knob"></span></button>;
+}
 
-function Settings({settings, setSettings, onReset, speed, setSpeed}){
-  const set = (k,v)=> setSettings(s=>({...s,[k]:v}));
+function Settings({settings,setSettings,onReset,speed,setSpeed}){
+  const set=(key,value)=>setSettings(current=>({...current,[key]:value}));
   return (
     <div className="view-pane frame">
-      <h2>⚙️ Settings</h2>
-      <div className="desc">Tune how your agent behaves and how the office feels.</div>
+      <h2>Display Settings</h2>
+      <div className="desc">These controls change the visualization only. They never arm, pause, or reset live trading.</div>
 
       <div className="set-row">
-        <div className="k">Autopilot<small>Agent roams and trades on its own</small></div>
+        <div className="k">Agent movement<small>Let the display agents move between crypto work zones</small></div>
         <Toggle on={settings.autopilot} onClick={()=>set('autopilot',!settings.autopilot)} />
       </div>
       <div className="set-row">
-        <div className="k">Animations<small>Walking bob, pulsing stations, pop-ins</small></div>
+        <div className="k">Animations<small>Walking, station pulses, and activity bubbles</small></div>
         <Toggle on={settings.anim} onClick={()=>set('anim',!settings.anim)} />
       </div>
       <div className="set-row">
-        <div className="k">Evening light<small>Warm vignette over the room</small></div>
-        <Toggle on={settings.tint} onClick={()=>set('tint',!settings.tint)} />
-      </div>
-      <div className="set-row">
-        <div className="k">Zone labels<small>Show nameplates on every work zone</small></div>
-        <Toggle on={settings.labels} onClick={()=>set('labels',!settings.labels)} />
-      </div>
-      <div className="set-row">
-        <div className="k">Agent names<small>Floating name tag under each agent</small></div>
+        <div className="k">Agent names<small>Show each crypto agent's name on the floor</small></div>
         <Toggle on={settings.names} onClick={()=>set('names',!settings.names)} />
       </div>
       <div className="set-row">
-        <div className="k">Aggression<small>Higher = more frequent trading</small></div>
+        <div className="k">Display activity<small>Controls how often agents visit visualization stations</small></div>
         <div className="seg">
-          {['Calm','Steady','Bold'].map((l,i)=>(
-            <button key={l} className={settings.aggr===i?'on':''} onClick={()=>set('aggr',i)}>{l}</button>
-          ))}
+          {['Calm','Steady','Busy'].map((label,index)=><button key={label}
+            className={settings.aggr===index?'on':''} onClick={()=>set('aggr',index)}>{label}</button>)}
         </div>
       </div>
       <div className="set-row">
-        <div className="k">Sim speed<small>How fast the day plays out</small></div>
+        <div className="k">Animation speed<small>Does not change market scans or order timing</small></div>
         <div className="seg">
-          {[1,2,4].map(s=>(
-            <button key={s} className={speed===s?'on':''} onClick={()=>setSpeed(s)}>{s}×</button>
-          ))}
+          {[1,2,4].map(value=><button key={value} className={speed===value?'on':''}
+            onClick={()=>setSpeed(value)}>{value}×</button>)}
         </div>
       </div>
       <div className="set-row" style={{borderBottom:'none'}}>
-        <div className="k">Reset session<small>Clear stats, history & balance</small></div>
-        <div className="btn gold" onClick={onReset}>↻ Reset</div>
+        <div className="k">Reset display<small>Clear visualization activity and return agents to their starting positions</small></div>
+        <button type="button" className="btn gold" onClick={onReset}>Reset display</button>
       </div>
     </div>
   );
 }
 
-Object.assign(window, { History, Settings, Toggle });
+Object.assign(window,{History,Settings,Toggle});
