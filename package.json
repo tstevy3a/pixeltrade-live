@@ -1,0 +1,26 @@
+{
+  "name": "pixeltrade-live",
+  "version": "2.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev:gateway": "tsx watch server/http.ts",
+    "start:gateway": "tsx server/http.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/analysis-model.test.js && vitest run --exclude tests/analysis-model.test.js",
+    "check": "npm run typecheck && npm test"
+  },
+  "dependencies": {
+    "@nktkas/hyperliquid": "0.33.3",
+    "viem": "2.55.19",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.0",
+    "typescript": "^7.0.0",
+    "vitest": "4.1.11"
+  }
+}

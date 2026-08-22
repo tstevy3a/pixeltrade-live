@@ -40,28 +40,8 @@ function App(){
   const [cryptoPositions, setCryptoPositions] = useState([]);
   const [cryptoNotifs, setCryptoNotifs] = useState([]);
   const [cryptoHistory, setCryptoHistory] = useState([]);
-  const executeTrade = React.useCallback((t)=>{
-    fetch('http://localhost:3456/trade', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({symbol:t.symbol, side:t.side, size:t.size}),
-    })
-    .then(r=>r.json())
-    .then(res=>{
-      const ic = res.ok?'✅':'❌';
-      const text = res.ok?`Executed ${t.side} ${t.size} ${t.symbol} @ $${(t.price||0).toFixed(0)}`:`Order failed: ${res.error}`;
-      setCryptoNotifs(l=>[{id:Date.now(),ic,text,kind:res.ok?'up':'down',who:t.agent,tint:'#6fe08c',time:fmtClock()},...l].slice(0,40));
-      if(res.ok) setCryptoHistory(l=>[{
-        id:Date.now(), day:1, time:fmtClock(), who:t.agent, tint:'#6fe08c',
-        station:'Hyperliquid', icon:'🔴', action:text,
-        side:t.side, symbol:t.symbol, qty:t.size, price:(t.price||0).toFixed(0),
-        pnl:0, crypto:true, real:true,
-      },...l].slice(0,200));
-    })
-    .catch(e=>setCryptoNotifs(l=>[{id:Date.now(),ic:'❌',
-      text:`Order error: ${e.message}`,kind:'down',who:t.agent,tint:'#e06f6f',time:fmtClock()},...l].slice(0,40)));
-  }, []);
-
-
+  const [gatewayStatus, setGatewayStatus] = useState(
+    window.PixelGateway ? window.PixelGateway.getStatus() : {online:false, mode:'OFFLINE', lastEvent:null});
   // ---- mutable sim refs ----
   const agentsRef = useRef(AGENTS.map((a,i)=>({
     id:a.id, name:a.name, role:a.role, tint:a.tint, map:a.map, palette:a.palette,
@@ -94,6 +74,13 @@ function App(){
       }
     });
     return () => { if (off) off(); };
+  }, []);
+  useEffect(()=>{
+    if(!window.PixelGateway) return;
+    return window.PixelGateway.subscribe(status=>{
+      setGatewayStatus(status);
+      setCryptoMode(status.mode === 'LIVE_MICRO' ? 'live' : 'paper');
+    });
   }, []);
 
   // ---- simulation loop (runs once) ----
@@ -245,17 +232,9 @@ function App(){
         if(self.workT<=0){
           const p=self.pending; self.pending=null;
           if(p && p.oc){
-            if(p.oc.crypto_trade){
-              // trigger approval popup instead of auto-executing
-              const t = p.oc.crypto_trade;
-              executeTrade({
-                symbol: t.symbol, side: t.side, size: t.size, price: t.price,
-                agent: self.name,
-              });
-            }
             if(p.oc.taskInc) {/* tasks only on stocks side */}
             setCryptoNotifs(l=>[{id:++idc.current, ...p.oc.notif, time:fmtClock(), who:self.name, tint:self.tint},...l].slice(0,40));
-            // crypto history: real orders only (pushed by executeTrade)
+            // The animation is display-only. Real decisions and orders stay in the private gateway.
           }
           self.phase='idle'; self.idleT=rnd(0.5,2.0); self.bubble=null; self.target=null;
         }
@@ -355,7 +334,8 @@ function App(){
           <Room agents={agentView} busySet={busySet} onStationClick={onStationClick}
             tint={settings.tint} showLabels={settings.labels} showNames={settings.names} />}
         {view==='crypto' && <CryptoRoom agents={cryptoAgentView} busySet={cryptoBusySet}
-            onStationClick={onCryptoStationClick} prices={cryptoPrices} cryptoMode={cryptoMode} />}
+            onStationClick={onCryptoStationClick} prices={cryptoPrices} cryptoMode={cryptoMode}
+            gatewayStatus={gatewayStatus} />}
         {view==='analysis'  && <Analysis analyses={analyses} activeAnalysisId={activeAnalysisId}
             setActiveAnalysisId={setActiveAnalysisId} onCreateAnalysis={onCreateAnalysis}
             agents={agentView} />}
@@ -369,7 +349,7 @@ function App(){
         agents={agentView}
         cryptoBalance={cryptoBalance} cryptoPnl={cryptoPnl} cryptoPrices={cryptoPrices}
         cryptoAvailable={cryptoAvailable} cryptoPositions={cryptoPositions}
-        cryptoAgents={cryptoAgentView} cryptoNotifs={cryptoNotifs} />
+        cryptoAgents={cryptoAgentView} cryptoNotifs={cryptoNotifs} gatewayStatus={gatewayStatus} />
 
 
     </div>

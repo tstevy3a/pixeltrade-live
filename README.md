@@ -1,6 +1,64 @@
 # PixelTrade — แดชบอร์ด AI Trading
 
-จำลองห้องเทรดสไตล์ pixel-art ที่มี AI agents คอยเทรด วิเคราะห์ตลาด และบริหารพอร์ตแบบเรียลไทม์
+หน้า pixel-art สำหรับติดตามทีม AI เทรด BTC/ETH โดยแยกหน้าจอสาธารณะออกจาก private execution gateway ที่ถือกุญแจและบังคับกฎความเสี่ยง
+
+> ระบบนี้ไม่รับประกันผลตอบแทน รุ่นแรกเป็นเพียง simulation ส่วน V2 ด้านล่างคือสถาปัตยกรรมสำหรับวัดผลจริงอย่างจำกัดและตรวจสอบย้อนหลังได้
+
+## V2: private AI trading gateway
+
+```text
+Hyperliquid market/account data
+            ↓
+4-model evidence committee
+            ↓
+deterministic volatility + risk gate
+            ↓
+SHADOW | TESTNET | LIVE_MICRO
+            ↓
+entry → confirm fill → stop + take profits
+            ↓
+append-only journal + daily circuit breakers
+```
+
+ทีม AI ใช้โมเดลชุดเดียวกับ Orbit Trading:
+
+- Qwen 3.7 Plus — lead crypto analyst
+- DeepSeek V4 Pro — bear/liquidation auditor
+- GLM 5.2 — independent evidence reviewer
+- MiniMax M3 — BTC/ETH regime strategist
+
+AI ไม่มีสิทธิ์กำหนดขนาด position, leverage หรือข้าม stop-loss เอง การซื้อเกิดได้เมื่อทั้ง 4 โมเดลอ้างอิงหลักฐานที่ส่งให้ครบ, เห็นตรงกัน, confidence อย่างน้อย 70 และผ่าน risk engine อีกชั้น หากโมเดลหรือข้อมูลขาด ระบบเลือก `HOLD`
+
+### โหมดการทำงาน
+
+- `SHADOW` — วิเคราะห์และบันทึกผล แต่ไม่สร้างคำสั่งซื้อขาย
+- `TESTNET` — ส่งคำสั่งไป Hyperliquid testnet
+- `LIVE_MICRO` —เงินจริง จำกัดทุนเริ่มต้นตามค่าเริ่มต้นที่ $100, risk 0.25% ต่อครั้ง, loss limit 1% ต่อวัน, 1 position, 1× leverage และไม่เกิน 3 entries ต่อวัน
+
+`AUTO_RUN_ENABLED` ปิดไว้เป็นค่าเริ่มต้น และ `LIVE_MICRO` ต้องผ่านทั้ง mode, private API wallet และคำยืนยันเงินจริงแยกกัน หน้า GitHub Pages ไม่มี private key, token หรือ endpoint สำหรับเลือก side/size/leverage
+
+### เริ่มใช้งาน
+
+```bash
+npm install
+cp .env.example .env
+npm run check
+npm run dev:gateway
+```
+
+เริ่มจาก `SHADOW` แล้วจึง `TESTNET` ก่อน `LIVE_MICRO` เสมอ ห้ามส่ง private key ผ่านแชตหรือเก็บใน Git กำหนดค่าใน `.env` บนเครื่อง/เซิร์ฟเวอร์ส่วนตัวเท่านั้น ดูรายละเอียดด้านความปลอดภัยใน [SECURITY.md](SECURITY.md)
+
+### ขอบเขตที่ต้องพิสูจน์ก่อนเงินจริง
+
+- รัน SHADOW และ TESTNET จนครอบคลุม fill บางส่วน, การตัดการเชื่อมต่อ, stale data และ stop/TP ทุกเส้นทาง
+- ยืนยัน asset precision และ trigger-order behavior กับ testnet
+- ตรวจ journal และ daily baseline ทุกวัน; baseline วันเดียวกันรีเซ็ตไม่ได้
+- ใช้ API wallet แยกที่จำกัดเงิน และถอนเงินไม่ได้
+- ยังไม่ควรเปิด unattended live จนมี process supervisor, alerting และ order reconciliation watchdog
+
+## หน้าเว็บเดิม
+
+ส่วนห้อง pixel-art ด้านล่างยังคงไว้เป็น visualization เท่านั้น การเดินของตัวละครไม่สามารถส่งคำสั่งซื้อขายได้
 
 ![PixelTrade Dashboard](assets/room.png)
 

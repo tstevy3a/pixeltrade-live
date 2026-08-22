@@ -1,4 +1,4 @@
-/* ===== Crypto Room — second trading floor for Hyperliquid paper trading ===== */
+/* ===== Crypto Room — read-only view of the private Hyperliquid gateway ===== */
 
 function CryptoAgent({a, scale, showName, z}) {
   return (
@@ -20,7 +20,8 @@ function CryptoStation({st, busyAgent, onClick, showLabels, price}) {
   const px = (price && typeof price === 'object') ? price.price : price;
   const priceText = px != null ? '$' + px.toLocaleString('en-US', {maximumFractionDigits: 2}) : '—';
   return (
-    <div className={'station crypto-station' + (st.zone ? ' work' : '') + (busy ? ' busy' : '')}
+    <button type="button" aria-label={`Send a display agent to ${st.name}`}
+      className={'station crypto-station' + (st.zone ? ' work' : '') + (busy ? ' busy' : '')}
       style={{left: st.x + '%', top: st.y + '%'}} onClick={() => onClick(st)} title={st.name}>
       <div className="ring"></div>
       <div className="crypto-icon">{st.icon}</div>
@@ -28,17 +29,25 @@ function CryptoStation({st, busyAgent, onClick, showLabels, price}) {
       {st.sym && <div className="crypto-price">{st.sym} {priceText}</div>}
       <div className="tip">{st.icon} {st.name}{busy ? ' · busy' : ''}</div>
       {busy && <div className="spark">✦</div>}
-    </div>
+    </button>
   );
 }
 
-function CryptoRoom({agents, busySet, onStationClick, prices, cryptoMode}) {
+function CryptoRoom({agents, busySet, onStationClick, prices, cryptoMode, gatewayStatus}) {
+  const mode = gatewayStatus && gatewayStatus.online ? gatewayStatus.mode : 'OFFLINE';
+  const last = gatewayStatus && gatewayStatus.lastEvent;
   return (
     <div className="stage">
       <div className="room crypto-room" style={{backgroundImage: 'url(assets/room.png)'}}>
         <div className="crypto-mode-banner">
-          <span className="mode-pill">🪙 {cryptoMode === 'paper' ? 'PAPER' : 'LIVE'}</span>
-          <span className="mode-hint">{cryptoMode === 'paper' ? 'Testnet · simulated orders · $0 risk' : 'Mainnet · real money ⚠️'}</span>
+          <span className="mode-pill">🪙 {mode}</span>
+          <span className="mode-hint">{mode === 'LIVE_MICRO'
+            ? 'Mainnet · real money · deterministic risk gate armed ⚠️'
+            : mode === 'TESTNET' ? 'Hyperliquid testnet execution'
+            : mode === 'SHADOW' ? 'AI committee active · no orders'
+            : 'Private gateway offline · visualization only'}
+            {last && last.riskVerdict ? ` · Last: ${last.symbol} ${last.riskVerdict}` : ''}
+          </span>
         </div>
         {CRYPTO_STATIONS.map(st => {
           const raw = st.sym ? prices[st.sym] : null;
@@ -51,7 +60,7 @@ function CryptoRoom({agents, busySet, onStationClick, prices, cryptoMode}) {
           <CryptoAgent key={a.id} a={a} scale={3} showName={true} z={100 + Math.round(a.pos.y)} />
         ))}
       </div>
-      <div className="room-hint mono">🪙 Click any work zone to send the nearest crypto agent there</div>
+      <div className="room-hint mono">Visualization only · work-zone clicks never place orders</div>
     </div>
   );
 }

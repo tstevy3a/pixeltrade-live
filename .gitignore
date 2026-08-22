@@ -9,6 +9,7 @@ secrets/
 credentials/
 
 # Local data (live trading state, paper positions)
+.pixeltrade/
 live-data/local/
 paper-trades/
 *.db

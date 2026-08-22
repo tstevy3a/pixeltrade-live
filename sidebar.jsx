@@ -59,14 +59,15 @@ function Spark({data}){
 
 function NavBtn({icon,label,id,view,setView,badge}){
   return (
-    <div className={'nav-btn'+(view===id?' active':'')} onClick={()=>setView(id)}>
+    <button type="button" className={'nav-btn'+(view===id?' active':'')}
+      aria-current={view===id?'page':undefined} onClick={()=>setView(id)}>
       <span className="ico">{icon}</span>{label}
       {badge>0 && <span className="badge">{badge}</span>}
-    </div>
+    </button>
   );
 }
 
-function Sidebar({view,setView,balance,pnlToday,tasksDone,notifs,equity,statusLabel,running,agents,cryptoBalance,cryptoPnl,cryptoPrices,cryptoAvailable,cryptoPositions,cryptoAgents,cryptoNotifs}){
+function Sidebar({view,setView,balance,pnlToday,tasksDone,notifs,equity,statusLabel,running,agents,cryptoBalance,cryptoPnl,cryptoPrices,cryptoAvailable,cryptoPositions,cryptoAgents,cryptoNotifs,gatewayStatus}){
   const listRef = React.useRef(null);
   const currentAgents = view === 'crypto' ? cryptoAgents : agents;
   const currentNotifs = view === 'crypto' ? cryptoNotifs : notifs;
@@ -112,20 +113,21 @@ function Sidebar({view,setView,balance,pnlToday,tasksDone,notifs,equity,statusLa
 
       {(view === 'crypto' || view === 'analysis') && (
       <div className="side-card frame">
-        <div className="label">🪙 Crypto <span className="mode-tag">LIVE</span></div>
+        <div className="label">🪙 Crypto <span className="mode-tag">{gatewayStatus?.online ? gatewayStatus.mode : 'OFFLINE'}</span></div>
         <div className="stats">
-          <div className="stat"><span className="k">Balance</span>
-            <span className="v">{fmtMoney(cryptoBalance)}</span></div>
-          <div className="stat"><span className="k">Available</span>
-            <span className="v">{fmtMoney(cryptoAvailable)}</span></div>
+          <div className="stat"><span className="k">Private Gateway</span>
+            <span className="v">{gatewayStatus?.online ? (gatewayStatus.engineBusy ? 'BUSY' : 'READY') : 'OFFLINE'}</span></div>
+          <div className="stat"><span className="k">Risk State</span>
+            <span className="v">{gatewayStatus?.riskStateReady ? 'READY' : 'NOT SET'}</span></div>
           <div className="stat"><span className="k">P&amp;L Today</span>
-            <span className={'v '+(cryptoPnl>=0?'up':'down')}>{fmtSigned(cryptoPnl)}</span></div>
+            <span className={'v '+((gatewayStatus?.dailyPnl??0)>=0?'up':'down')}>
+              {gatewayStatus?.dailyPnl == null ? '—' : fmtSigned(gatewayStatus.dailyPnl)}</span></div>
+          <div className="stat"><span className="k">Trades Today</span>
+            <span className="v">{gatewayStatus?.tradesToday == null ? '—' : gatewayStatus.tradesToday}</span></div>
           <div className="stat"><span className="k">BTC</span>
             <span className="v mono">{cryptoPrices.BTC ? '$'+cryptoPrices.BTC.price.toLocaleString('en-US',{maximumFractionDigits:0}) : '—'}</span></div>
           <div className="stat"><span className="k">ETH</span>
             <span className="v mono">{cryptoPrices.ETH ? '$'+cryptoPrices.ETH.price.toLocaleString('en-US',{maximumFractionDigits:0}) : '—'}</span></div>
-          <div className="stat"><span className="k">SOL</span>
-            <span className="v mono">{cryptoPrices.SOL ? '$'+cryptoPrices.SOL.price.toFixed(2) : '—'}</span></div>
         </div>
         {(cryptoPositions||[]).length > 0 && (
           <div className="positions">

@@ -1,13 +1,10 @@
 /* ===== Hyperliquid browser-side fetcher =====
    Mainnet: https://api.hyperliquid.xyz (public read-only, no auth needed)
-   Portfolio: polls real wallet balance + positions every 10s
-   Write ops (orders) go through MCP server on localhost — never from browser. */
+   Portfolio and all write operations belong to the private gateway. */
 (function(){
   const API_URL = 'https://api.hyperliquid.xyz';
-  const WALLET  = '0xF7e687e0e4A250e4CDa493fD2C0606610eFe4073';
   const POLL_MS         = 5000;
   const POLL_CANDLE_MS  = 30000;
-  const POLL_PORTFOLIO_MS = 10000;
   const DEFAULT_SYMBOLS = ['BTC', 'ETH', 'SOL'];
 
   let priceCache = {};
@@ -188,10 +185,8 @@
     if (window.__hlTimer) return;
     pollMids();
     pollAllIndicators();
-    pollPortfolio();
     window.__hlTimer       = setInterval(pollMids, POLL_MS);
     window.__hlIndTimer    = setInterval(pollAllIndicators, POLL_CANDLE_MS);
-    window.__hlPortTimer   = setInterval(pollPortfolio, POLL_PORTFOLIO_MS);
   }
 
   function getPrices() {
@@ -301,35 +296,13 @@
     };
   }
 
-  async function pollPortfolio() {
-    const d = await postJson({type: 'clearinghouseState', user: WALLET});
-    if (!d) return;
-    const ms = d.marginSummary || {};
-    portfolioCache = {
-      balance:   parseFloat(ms.accountValue  || 0),
-      available: parseFloat(ms.totalRawUsd   || 0),
-      positions: (d.assetPositions || []).map(p => {
-        const pos = p.position || {};
-        return {
-          coin:   pos.coin,
-          size:   parseFloat(pos.szi || 0),
-          entry:  parseFloat(pos.entryPx || 0),
-          uPnl:   parseFloat(pos.unrealizedPnl || 0),
-          liq:    parseFloat(pos.liquidationPx || 0),
-        };
-      }),
-      ts: Date.now(),
-    };
-    emitUpdate();
-  }
-
   function getPortfolio() { return portfolioCache; }
 
   window.Hyperliquid = {
     start, getPrices, getPrice, getIndicators, getIndicatorsSync, getIndicatorsAll,
     onUpdate, decideAction, getPortfolio,
-    mode: 'mainnet',
-    wallet: WALLET,
+    mode: 'public-market-data-only',
+    wallet: null,
   };
 
   if (document.readyState === 'loading') {
