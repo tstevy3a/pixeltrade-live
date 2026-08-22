@@ -78,4 +78,24 @@ describe("crypto committee", () => {
     }));
     expect((await runCryptoCommittee(snapshot, config)).status).toBe("UNAVAILABLE");
   });
+
+  it("uses the authenticated Orbit bridge and normalizes bounded model output", async () => {
+    const vote = JSON.stringify({
+      verdict: "BUY", confidence: 80.4, thesis: "x".repeat(700), risks: [],
+      criticalVeto: false, evidenceIds: ["MARK_ORACLE"],
+    });
+    const upstream = vi.fn(async (url: string) => String(url).includes("orbit.test")
+      ? new Response(JSON.stringify({ content: vote }))
+      : new Response(JSON.stringify({ content: [{ type: "text", text: vote }] })));
+    vi.stubGlobal("fetch", upstream);
+    const result = await runCryptoCommittee(snapshot, {
+      ...config,
+      dashscopeApiKey: undefined,
+      modelProxyUrl: "https://orbit.test/api/pixeltrade-committee",
+      modelProxyToken: "s".repeat(64),
+    });
+    expect(result.status).toBe("APPROVED");
+    expect(result.votes.every((item) => item.confidence === 80 && item.thesis.length === 600)).toBe(true);
+    expect(upstream).toHaveBeenCalledTimes(4);
+  });
 });

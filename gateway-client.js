@@ -2,8 +2,9 @@
 (function(){
   const BASE = 'http://127.0.0.1:3456';
   let status = {
-    online:false, mode:'OFFLINE', liveArmed:false, engineBusy:false,
-    riskStateReady:false, dailyPnl:null, tradesToday:null, portfolio:null, models:[], lastEvent:null,
+    online:false, mode:'OFFLINE', liveArmed:false, autoRunEnabled:false, engineBusy:false,
+    riskStateReady:false, dailyPnl:null, tradesToday:null, portfolio:null,
+    protectionAudit:null, models:[], lastEvent:null,
   };
   const listeners = new Set();
   async function poll(){

@@ -16,6 +16,8 @@ describe("gateway configuration", () => {
       PIXELTRADE_GATEWAY_TOKEN: "x".repeat(32),
       HYPERLIQUID_ACCOUNT_ADDRESS: `0x${"1".repeat(40)}`,
       HYPERLIQUID_API_PRIVATE_KEY: `0x${"2".repeat(64)}`,
+      MINIMAX_API_KEY: "minimax-test",
+      PIXELTRADE_MODEL_PROXY_TOKEN: "p".repeat(32),
     };
     expect(() => loadConfig(base)).toThrow("LIVE_TRADING_ACK_REQUIRED");
     expect(loadConfig({ ...base, LIVE_TRADING_ACK: "I_UNDERSTAND_REAL_MONEY" }).PIXELTRADE_MODE).toBe("LIVE_MICRO");

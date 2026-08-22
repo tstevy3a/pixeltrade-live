@@ -177,4 +177,46 @@ export class HyperliquidExecutor implements ExecutionAdapter {
       grouping: "na",
     });
   }
+
+  async auditProtection(symbols: readonly string[]) {
+    const [state, orders] = await Promise.all([
+      this.info.clearinghouseState({ user: this.accountAddress }),
+      this.info.frontendOpenOrders({ user: this.accountAddress }),
+    ]);
+    const reports: Array<Record<string, unknown>> = [];
+    for (const symbol of symbols) {
+      const row = state.assetPositions.find((item) => item.position.coin === symbol)?.position;
+      const quantity = row ? Number(row.szi) : 0;
+      if (!Number.isFinite(quantity) || quantity === 0) {
+        reports.push({ symbol, status: "FLAT" });
+        continue;
+      }
+      if (quantity < 0) {
+        reports.push({ symbol, status: "UNMANAGED_SHORT_DETECTED" });
+        continue;
+      }
+      const protective = orders.filter((order) => (
+        order.coin === symbol && order.reduceOnly && order.isTrigger && order.side === "A"
+      ));
+      const hasStop = protective.some((order) => order.orderType.startsWith("Stop"));
+      const hasTakeProfit = protective.some((order) => order.orderType.startsWith("Take Profit"));
+      if (hasStop && hasTakeProfit) {
+        reports.push({ symbol, status: "PROTECTED", protectiveOrders: protective.length });
+        continue;
+      }
+      const asset = await this.asset(symbol);
+      if (protective.length) {
+        await this.exchange.cancel({
+          cancels: protective.map((order) => ({ a: asset, o: order.oid })),
+        }).catch(() => undefined);
+      }
+      await this.emergencyClose(symbol, quantity);
+      reports.push({
+        symbol,
+        status: "EMERGENCY_CLOSE_SENT",
+        reason: !hasStop ? "STOP_MISSING" : "TAKE_PROFIT_MISSING",
+      });
+    }
+    return reports;
+  }
 }

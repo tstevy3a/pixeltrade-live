@@ -34,6 +34,8 @@ export async function runOnce(config: AppConfig, symbol: CryptoSymbol) {
       dashscopeBaseUrl: config.DASHSCOPE_BASE_URL,
       minimaxApiKey: config.MINIMAX_API_KEY,
       minimaxBaseUrl: config.MINIMAX_BASE_URL,
+      modelProxyUrl: config.PIXELTRADE_MODEL_PROXY_URL,
+      modelProxyToken: config.PIXELTRADE_MODEL_PROXY_TOKEN,
     });
     const risk = evaluateRisk(snapshot, committee, {
       riskPerTrade: config.RISK_PER_TRADE,

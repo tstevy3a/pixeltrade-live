@@ -4,6 +4,8 @@ import { timingSafeEqual } from "node:crypto";
 import { cryptoCommitteeModels } from "./committee.js";
 import { loadConfig } from "./config.js";
 import { HyperliquidMarketData } from "./market-data.js";
+import { HyperliquidExecutor } from "./hyperliquid-executor.js";
+import { appendJournal } from "./journal.js";
 import { readLastJournalSummary } from "./journal.js";
 import { establishRiskBaseline, readRiskState } from "./risk-state.js";
 import { engineBusy, runOnce } from "./service.js";
@@ -11,6 +13,7 @@ import { symbolSchema } from "./types.js";
 
 const config = loadConfig();
 let portfolioCache: { key: string; expiresAt: number; value: unknown } | null = null;
+let lastProtectionAudit: unknown = null;
 
 async function currentPortfolio() {
   const accountAddress = (config.HYPERLIQUID_ACCOUNT_ADDRESS ?? config.HYPERLIQUID_VIEW_ADDRESS) as `0x${string}`;
@@ -82,6 +85,7 @@ const server = createServer(async (request, response) => {
         service: "pixeltrade-private-gateway",
         mode: config.PIXELTRADE_MODE,
         liveArmed: config.PIXELTRADE_MODE === "LIVE_MICRO",
+        autoRunEnabled: config.AUTO_RUN_ENABLED,
         engineBusy: engineBusy(),
       });
     }
@@ -90,11 +94,13 @@ const server = createServer(async (request, response) => {
       return json(response, 200, {
         mode: config.PIXELTRADE_MODE,
         liveArmed: config.PIXELTRADE_MODE === "LIVE_MICRO",
+        autoRunEnabled: config.AUTO_RUN_ENABLED,
         engineBusy: engineBusy(),
         riskStateReady: Boolean(state),
         dailyPnl: state?.realizedPnl ?? null,
         tradesToday: state?.trades ?? null,
         portfolio: await currentPortfolio(),
+        protectionAudit: lastProtectionAudit,
         models: cryptoCommitteeModels,
         lastEvent: await readLastJournalSummary(),
       });
@@ -150,4 +156,30 @@ if (config.AUTO_RUN_ENABLED) {
   const timer = setInterval(automaticRun, 30_000);
   timer.unref();
   void automaticRun();
+}
+
+async function protectionWatchdog() {
+  if (config.PIXELTRADE_MODE === "SHADOW" || engineBusy()) return;
+  if (!config.HYPERLIQUID_ACCOUNT_ADDRESS || !config.HYPERLIQUID_API_PRIVATE_KEY) return;
+  try {
+    const executor = new HyperliquidExecutor({
+      isTestnet: config.PIXELTRADE_MODE === "TESTNET",
+      accountAddress: config.HYPERLIQUID_ACCOUNT_ADDRESS as `0x${string}`,
+      apiPrivateKey: config.HYPERLIQUID_API_PRIVATE_KEY as `0x${string}`,
+      leverage: config.MAX_LEVERAGE,
+    });
+    lastProtectionAudit = {
+      status: "OK",
+      checkedAt: new Date().toISOString(),
+      symbols: await executor.auditProtection(["BTC", "ETH"]),
+    };
+  } catch {
+    lastProtectionAudit = { status: "FAILED", checkedAt: new Date().toISOString() };
+    await appendJournal({ type: "PROTECTION_WATCHDOG_FAILED", mode: config.PIXELTRADE_MODE });
+  }
+}
+if (config.PIXELTRADE_MODE !== "SHADOW") {
+  const watchdogTimer = setInterval(protectionWatchdog, 30_000);
+  watchdogTimer.unref();
+  void protectionWatchdog();
 }

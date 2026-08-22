@@ -56,7 +56,7 @@ npm run dev:gateway
 - ยืนยัน asset precision และ trigger-order behavior กับ testnet
 - ตรวจ journal และ daily baseline ทุกวัน; baseline วันเดียวกันรีเซ็ตไม่ได้
 - ใช้ API wallet แยกที่จำกัดเงิน และถอนเงินไม่ได้
-- ยังไม่ควรเปิด unattended live จนมี process supervisor, alerting และ order reconciliation watchdog
+- เครื่อง live นี้ติดตั้ง process supervisor และ protection watchdog ทุก 30 วินาทีแล้ว โดย watchdog ตรวจว่า BTC/ETH long ทุก position มี reduce-only stop และ take-profit; หาก protection ขาด ระบบจะยกเลิก protection ที่ค้างและส่ง emergency reduce-only close ส่วนการแจ้งเตือนใช้หน้า dashboard และ journal log
 
 ## หน้าเว็บเดิม
 

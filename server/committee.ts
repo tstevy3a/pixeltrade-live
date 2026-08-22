@@ -42,6 +42,14 @@ const providerVoteSchema = z.object({
   criticalVeto: z.boolean(),
   evidenceIds: z.array(z.string().min(1).max(80)).min(1).max(12),
 });
+const rawProviderVoteSchema = z.object({
+  verdict: z.enum(["BUY", "HOLD", "VETO"]),
+  confidence: z.number().min(0).max(100),
+  thesis: z.string(),
+  risks: z.array(z.string()),
+  criticalVeto: z.boolean(),
+  evidenceIds: z.array(z.string()),
+});
 
 type ModelDefinition = (typeof MODELS)[number];
 
@@ -50,6 +58,8 @@ export type CommitteeConfig = {
   dashscopeBaseUrl: string;
   minimaxApiKey?: string | undefined;
   minimaxBaseUrl: string;
+  modelProxyUrl?: string | undefined;
+  modelProxyToken?: string | undefined;
 };
 
 function evidencePacket(snapshot: MarketSnapshot) {
@@ -93,7 +103,14 @@ function validateVote(
   model: ModelDefinition,
   allowedEvidence: Set<string>,
 ): ModelVote {
-  const parsed = providerVoteSchema.parse(raw);
+  const unbounded = rawProviderVoteSchema.parse(raw);
+  const parsed = providerVoteSchema.parse({
+    ...unbounded,
+    confidence: Math.round(unbounded.confidence),
+    thesis: unbounded.thesis.slice(0, 600),
+    risks: unbounded.risks.slice(0, 6).map((risk) => risk.slice(0, 180)),
+    evidenceIds: unbounded.evidenceIds.slice(0, 12).map((id) => id.slice(0, 80)),
+  });
   if (parsed.evidenceIds.some((id) => !allowedEvidence.has(id))) {
     throw new Error("MODEL_INVENTED_EVIDENCE");
   }
@@ -134,6 +151,21 @@ async function callOne(
   const { system, user } = prompts(model, snapshot, evidence, priorVotes);
   try {
     if (model.provider === "dashscope") {
+      if (config.modelProxyUrl && config.modelProxyToken) {
+        const response = await fetch(config.modelProxyUrl, {
+          method: "POST",
+          headers: {
+            "x-pixeltrade-secret": config.modelProxyToken,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ model: model.model, system, user }),
+          signal: AbortSignal.timeout(70_000),
+        });
+        const payload = await response.json() as { content?: string; error?: string };
+        if (!response.ok) throw new Error(payload.error ?? `MODEL_PROXY_HTTP_${response.status}`);
+        if (!payload.content) throw new Error("MODEL_PROXY_CONTENT_MISSING");
+        return validateVote(jsonObject(payload.content), model, allowed);
+      }
       if (!config.dashscopeApiKey) throw new Error("DASHSCOPE_NOT_CONFIGURED");
       const response = await fetch(`${config.dashscopeBaseUrl.replace(/\/$/, "")}/chat/completions`, {
         method: "POST",

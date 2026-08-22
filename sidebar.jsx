@@ -120,6 +120,10 @@ function Sidebar({view,setView,balance,pnlToday,tasksDone,notifs,equity,statusLa
         <div className="stats">
           <div className="stat"><span className="k">Private Gateway</span>
             <span className="v">{gatewayStatus?.online ? (gatewayStatus.engineBusy ? 'BUSY' : 'READY') : 'OFFLINE'}</span></div>
+          <div className="stat"><span className="k">Auto Runner</span>
+            <span className="v">{gatewayStatus?.autoRunEnabled ? 'ON' : 'OFF'}</span></div>
+          <div className="stat"><span className="k">Protection</span>
+            <span className="v">{gatewayStatus?.protectionAudit?.status || '—'}</span></div>
           <div className="stat"><span className="k">Risk State</span>
             <span className="v">{gatewayStatus?.riskStateReady ? 'READY' : 'NOT SET'}</span></div>
           <div className="stat"><span className="k">Account</span>
