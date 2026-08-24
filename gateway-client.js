@@ -1,6 +1,8 @@
 /* Read-only bridge to the private gateway. Browser code has no execution token. */
 (function(){
-  const BASE = 'http://127.0.0.1:3456';
+  const STATUS_URL = window.location.hostname.endsWith('.ts.net')
+    ? '/pixeltrade-status'
+    : 'http://127.0.0.1:3456/api/status';
   let status = {
     online:false, mode:'OFFLINE', liveArmed:false, autoRunEnabled:false, engineBusy:false,
     riskStateReady:false, dailyPnl:null, tradesToday:null, portfolio:null,
@@ -9,7 +11,7 @@
   const listeners = new Set();
   async function poll(){
     try {
-      const response = await fetch(BASE + '/api/status', {cache:'no-store'});
+      const response = await fetch(STATUS_URL, {cache:'no-store'});
       if(!response.ok) throw new Error('gateway ' + response.status);
       status = {...await response.json(), online:true};
     }catch(_error){
