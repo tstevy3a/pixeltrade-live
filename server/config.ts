@@ -58,8 +58,13 @@ function secureRuntimeEnvironment(env: NodeJS.ProcessEnv) {
   merged.HYPERLIQUID_ACCOUNT_ADDRESS ??= legacy.HYPERLIQUID_WALLET;
   merged.MINIMAX_API_KEY ??= keychain("pixeltrade-minimax") ?? legacy.MINIMAX_API_KEY;
   merged.DASHSCOPE_API_KEY ??= keychain("pixeltrade-modelstudio");
-  merged.PIXELTRADE_MODEL_PROXY_TOKEN ??= keychain("pixeltrade-model-proxy-token");
-  merged.PIXELTRADE_GATEWAY_TOKEN ??= keychain("pixeltrade-gateway-token");
+  // A headless macOS LaunchAgent cannot always unlock the login Keychain.  The
+  // owner-only runtime file is the secure fallback for deployments such as a
+  // dedicated Mac mini; environment and Keychain remain higher priority.
+  merged.PIXELTRADE_MODEL_PROXY_TOKEN ??= keychain("pixeltrade-model-proxy-token")
+    ?? legacy.PIXELTRADE_MODEL_PROXY_TOKEN;
+  merged.PIXELTRADE_GATEWAY_TOKEN ??= keychain("pixeltrade-gateway-token")
+    ?? legacy.PIXELTRADE_GATEWAY_TOKEN;
   return merged;
 }
 
