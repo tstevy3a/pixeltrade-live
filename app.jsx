@@ -8,6 +8,7 @@ function App(){
   const [settings,setSettings]=useState({autopilot:true,anim:true,aggr:1,names:true});
   const [cryptoPrices,setCryptoPrices]=useState({});
   const [publicPortfolio,setPublicPortfolio]=useState(null);
+  const [tradeHistory,setTradeHistory]=useState([]);
   const [cryptoNotifs,setCryptoNotifs]=useState([]);
   const [cryptoAgentView,setCryptoAgentView]=useState(
     (window.CRYPTO_AGENTS||[]).map((agent,index)=>({
@@ -40,6 +41,7 @@ function App(){
     return window.Hyperliquid.onUpdate(snapshot=>{
       setCryptoPrices(snapshot.prices||{});
       if(snapshot.portfolio?.status==='AVAILABLE') setPublicPortfolio(snapshot.portfolio);
+      if(Array.isArray(snapshot.history)) setTradeHistory(snapshot.history);
     });
   },[]);
   useEffect(()=>{
@@ -201,7 +203,7 @@ function App(){
         {view==='crypto'&&<CryptoRoom agents={cryptoAgentView} busySet={cryptoBusySet}
           onStationClick={onCryptoStationClick} prices={cryptoPrices} gatewayStatus={displayGatewayStatus}
           showNames={settings.names}/>}
-        {view==='history'&&<History history={[]}/>}
+        {view==='history'&&<History history={tradeHistory}/>}
         {view==='settings'&&<Settings settings={settings} setSettings={setSettings}
           onReset={resetDisplay} speed={speed} setSpeed={setSpeed}/>}
       </main>

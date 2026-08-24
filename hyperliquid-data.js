@@ -7,6 +7,7 @@
   const VIEW_ACCOUNT = '0xF7e687e0e4A250e4CDa493fD2C0606610eFe4073';
   const POLL_MS         = 5000;
   const POLL_PORTFOLIO_MS = 10000;
+  const POLL_FILLS_MS   = 15000;
   const POLL_CANDLE_MS  = 30000;
   const DEFAULT_SYMBOLS = ['BTC', 'ETH', 'SOL'];
 
@@ -14,6 +15,7 @@
   let candleCache = {};
   let indicatorCache = {};
   let portfolioCache = null;
+  let fillsCache = [];
   const subscribers = new Set();
 
   async function postJson(body) {
@@ -105,6 +107,34 @@
     } catch (error) {
       console.warn('[Hyperliquid] rejected malformed portfolio response:', error.message);
     }
+  }
+
+  async function pollFills() {
+    const fills = await postJson({type: 'userFills', user: VIEW_ACCOUNT, aggregateByTime: true});
+    if (!Array.isArray(fills)) return;
+    fillsCache = fills
+      .map(fill => {
+        const price = Number(fill.px);
+        const size = Number(fill.sz);
+        const fee = Number(fill.fee);
+        const closedPnl = Number(fill.closedPnl);
+        const time = Number(fill.time);
+        if (![price, size, fee, closedPnl, time].every(Number.isFinite)) return null;
+        return {
+          id: `${String(fill.hash || fill.oid)}:${String(fill.tid || time)}`,
+          time,
+          who: 'Hyperliquid',
+          tint: '#3f7d56',
+          station: `${String(fill.coin)} Desk`,
+          action: String(fill.dir || (fill.side === 'B' ? 'Buy' : 'Sell')),
+          detail: `${size} ${String(fill.coin)} @ $${price.toLocaleString()} · fee ${fee.toFixed(4)} ${String(fill.feeToken || 'USDC')}`,
+          pnl: closedPnl - fee,
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.time - a.time)
+      .slice(0, 100);
+    emitUpdate();
   }
 
   async function pollCandles(symbol, interval = '1h') {
@@ -222,7 +252,12 @@
   }
 
   function emitUpdate() {
-    const snapshot = {prices: {...priceCache}, indicators: {...indicatorCache}, portfolio: portfolioCache};
+    const snapshot = {
+      prices: {...priceCache},
+      indicators: {...indicatorCache},
+      portfolio: portfolioCache,
+      history: [...fillsCache],
+    };
     subscribers.forEach(cb => { try { cb(snapshot); } catch(e){console.warn(e);} });
   }
 
@@ -247,9 +282,11 @@
     pollMids();
     pollAllIndicators();
     pollPortfolio();
+    pollFills();
     window.__hlTimer       = setInterval(pollMids, POLL_MS);
     window.__hlIndTimer    = setInterval(pollAllIndicators, POLL_CANDLE_MS);
     window.__hlPortfolioTimer = setInterval(pollPortfolio, POLL_PORTFOLIO_MS);
+    window.__hlFillsTimer = setInterval(pollFills, POLL_FILLS_MS);
   }
 
   function getPrices() {
@@ -275,7 +312,12 @@
 
   function onUpdate(cb) {
     subscribers.add(cb);
-    cb({prices: getPrices(), indicators: {...indicatorCache}, portfolio: portfolioCache});
+    cb({
+      prices: getPrices(),
+      indicators: {...indicatorCache},
+      portfolio: portfolioCache,
+      history: [...fillsCache],
+    });
     return () => subscribers.delete(cb);
   }
 

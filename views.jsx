@@ -1,6 +1,12 @@
 /* ===== Crypto activity and display settings ===== */
 
 function History({history}){
+  const formatTime=(value)=>{
+    if(!value) return '—';
+    return new Intl.DateTimeFormat('en-GB',{
+      dateStyle:'short',timeStyle:'short',timeZone:'Asia/Bangkok',
+    }).format(new Date(value));
+  };
   return (
     <div className="view-pane frame">
       <h2>Trade &amp; Activity History</h2>
@@ -13,13 +19,13 @@ function History({history}){
           <tbody>
             {history.length===0 && <tr><td colSpan="6" className="muted">No verified execution history loaded.</td></tr>}
             {history.map(item=><tr key={item.id}>
-              <td className="muted">{item.time||'—'}</td>
+              <td className="muted">{formatTime(item.time)}</td>
               <td><span className="who" style={{color:item.tint}}>{item.who||'—'}</span></td>
               <td>{item.station||'—'}</td>
               <td>{item.action||'—'}</td>
               <td><span className="muted">{item.detail||'—'}</span></td>
               <td style={{textAlign:'right'}} className={item.pnl>0?'up':item.pnl<0?'down':''}>
-                {item.pnl?fmtSigned(item.pnl):'—'}</td>
+                {Number.isFinite(item.pnl)?fmtSigned(item.pnl):'—'}</td>
             </tr>)}
           </tbody>
         </table>
